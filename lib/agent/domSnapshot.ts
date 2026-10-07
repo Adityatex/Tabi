@@ -38,8 +38,9 @@ const SKIP_TAGS = new Set([
   'SCRIPT', 'STYLE', 'NOSCRIPT', 'SVG', 'CANVAS', 'TEMPLATE', 'HEAD',
 ]);
 
-// Tabi no longer puts UI in the page (it lives in the side panel), but never show one to the agent
-const OWN_UI_TAG = 'TABI-SIDEBAR';
+// Tabi's own UI on the page (the cue while a task runs, the toolbar on selected
+// text) lives in closed shadow roots, which this walker can enter: never read it
+const OWN_UI_TAGS = new Set(['TABI-CUE', 'TABI-SELECTION']);
 
 // ---------------------------------------------------------------- element registry
 // Maps snapshot IDs to live elements. A querySelector on a data attribute can't
@@ -178,7 +179,7 @@ function collectInteractive(
   const doc = root.nodeType === Node.DOCUMENT_NODE ? (root as Document) : (root.ownerDocument as Document);
   const walker = doc.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, {
     acceptNode: (node) =>
-      SKIP_TAGS.has((node as Element).tagName) || (node as Element).tagName === OWN_UI_TAG
+      SKIP_TAGS.has((node as Element).tagName) || OWN_UI_TAGS.has((node as Element).tagName)
         ? NodeFilter.FILTER_REJECT
         : NodeFilter.FILTER_ACCEPT,
   });
@@ -211,7 +212,7 @@ function collectTextSources(root: Document | ShadowRoot, frame: string | undefin
   const doc = root.nodeType === Node.DOCUMENT_NODE ? (root as Document) : (root.ownerDocument as Document);
   const walker = doc.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, {
     acceptNode: (node) =>
-      SKIP_TAGS.has((node as Element).tagName) || (node as Element).tagName === OWN_UI_TAG
+      SKIP_TAGS.has((node as Element).tagName) || OWN_UI_TAGS.has((node as Element).tagName)
         ? NodeFilter.FILTER_REJECT
         : NodeFilter.FILTER_ACCEPT,
   });

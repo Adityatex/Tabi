@@ -71,10 +71,13 @@ describe('shadow DOM', () => {
     expect(createDOMSnapshot().elements.map(e => e.label)).toEqual(['First', 'Middle', 'Last']);
   });
 
-  it("never includes Tabi's own sidebar", () => {
-    document.body.innerHTML = '<button>Page button</button><tabi-sidebar></tabi-sidebar>';
-    document.querySelector('tabi-sidebar')!.attachShadow({ mode: 'open' }).innerHTML = '<button>Send</button>';
-    expect(createDOMSnapshot().elements.map(e => e.label)).toEqual(['Page button']);
+  it("never includes Tabi's own UI on the page: the cue and the toolbar on selected text", () => {
+    document.body.innerHTML = '<button>Page button</button><tabi-cue></tabi-cue><tabi-selection></tabi-selection>';
+    document.querySelector('tabi-cue')!.attachShadow({ mode: 'open' }).innerHTML = '<button>Stop</button>';
+    document.querySelector('tabi-selection')!.attachShadow({ mode: 'open' }).innerHTML = '<div role="toolbar" aria-label="Tabi"><button>Explain</button></div>';
+    const { text, elements } = createDOMSnapshot();
+    expect(elements.map(e => e.label)).toEqual(['Page button']);
+    expect(text).not.toContain('Tabi');
   });
 });
 
@@ -162,10 +165,13 @@ describe('page text from shadow roots', () => {
     expect(text).not.toContain('color: red'); // style text isn't page text
   });
 
-  it("keeps Tabi's own sidebar text out", () => {
-    document.body.innerHTML = '<p>Page</p><tabi-sidebar></tabi-sidebar>';
-    document.querySelector('tabi-sidebar')!.attachShadow({ mode: 'open' }).innerHTML = '<p>Agent Progress</p>';
-    expect(pageText(2000)).not.toContain('Agent Progress');
+  it("keeps the text of Tabi's own UI on the page out", () => {
+    document.body.innerHTML = '<p>Page</p><tabi-cue></tabi-cue><tabi-selection></tabi-selection>';
+    document.querySelector('tabi-cue')!.attachShadow({ mode: 'open' }).innerHTML = '<p>Tabi is working</p>';
+    document.querySelector('tabi-selection')!.attachShadow({ mode: 'open' }).innerHTML = '<p>Photosynthesis is how plants</p>';
+    const text = pageText(2000);
+    expect(text).not.toContain('Tabi is working');
+    expect(text).not.toContain('Photosynthesis');
   });
 });
 
