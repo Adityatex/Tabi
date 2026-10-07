@@ -143,8 +143,6 @@ export interface StoredLLMSettings {
 }
 
 export const SETTINGS_KEY = 'tabi_llm';
-/** Storage keys from before multi-provider support (Groq only). */
-export const LEGACY_KEYS = ['groqApiKey', 'groqModel'] as const;
 
 /** Everything a request needs, resolved from settings. */
 export interface LLMConfig {
@@ -159,7 +157,7 @@ export interface LLMConfig {
   failFast?: boolean;
 }
 
-/** Stored settings, migrating the old Groq-only keys if that's all there is. */
+/** Stored settings, or Groq with nothing set up. */
 export function readSettings(stored: Record<string, unknown>): StoredLLMSettings {
   const saved = stored[SETTINGS_KEY] as StoredLLMSettings | undefined;
   if (saved?.provider && PROVIDERS[saved.provider]) {
@@ -169,13 +167,7 @@ export function readSettings(stored: Record<string, unknown>): StoredLLMSettings
       : undefined;
     return { provider: saved.provider, models: saved.models ?? {}, keys: saved.keys ?? {}, customBaseUrl: saved.customBaseUrl, fallbacks, executor };
   }
-  const legacyKey = typeof stored.groqApiKey === 'string' ? stored.groqApiKey : '';
-  const legacyModel = typeof stored.groqModel === 'string' ? stored.groqModel : '';
-  return {
-    provider: 'groq',
-    models: legacyModel ? { groq: legacyModel } : {},
-    keys: legacyKey ? { groq: legacyKey } : {},
-  };
+  return { provider: 'groq', models: {}, keys: {} };
 }
 
 /** Config for the active provider (or `provider`, when given). */

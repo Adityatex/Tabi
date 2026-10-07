@@ -9,7 +9,7 @@ npm install && npm run build
 node dist/server.js token        # your pairing token, plus the commands below with the right path
 ```
 
-1. In Chrome, open the Tabi popup. Under **AI apps (MCP)**, turn on **Let AI apps control this browser** and paste the token.
+1. In Chrome, open Tabi Settings. Under **AI apps (MCP)**, turn on **Let AI apps control this browser** and paste the token.
 2. Add the server to your AI app:
    - Claude Code: `claude mcp add tabi -- node /path/to/mcp/dist/server.js`
    - Codex: `codex mcp add tabi -- node /path/to/mcp/dist/server.js`
@@ -25,16 +25,6 @@ node dist/server.js token        # your pairing token, plus the commands below w
 | `TABI_MCP_TOKEN` | saved in `~/.tabi-mcp/token` | Use a token of your own: `tbk_` and 64 hex characters |
 
 Only one AI app can use Tabi at a time, since the port is shared.
-
-## Renamed from genesis-mcp
-
-This server was called `genesis-mcp` before the extension was renamed Tabi. For one more release, setups made before then keep working:
-
-- The `genesis-mcp` command still runs the server, and prints how to switch.
-- `GENESIS_MCP_TOKEN` and `GENESIS_MCP_PORT` are still read, with a note to rename them.
-- A token saved in `~/.genesis-mcp` moves to `~/.tabi-mcp` on first run. Tokens made before the rename have no `tbk_` prefix; they still pair, so you don't need to paste a new one.
-
-To switch, remove the old entry from your AI app (`claude mcp remove genesis`) and add it again as `tabi`.
 
 ## How it's secured
 

@@ -51,12 +51,12 @@ describe('pairing tokens', () => {
     expect(isValidToken(newToken())).toBe(true);
   });
 
-  it('accept pasted ones with stray whitespace, and ones from before the rename', () => {
+  it('accept pasted ones with stray whitespace or capitals, and nothing else', () => {
     const hex = randomHex(32);
     expect(normalizeToken(`  TBK_${hex.toUpperCase()}
 `)).toBe(`tbk_${hex}`);
-    expect(isValidToken(hex)).toBe(true);
-    expect(normalizeToken(hex)).toBe(`tbk_${hex}`);
+    expect(isValidToken(`  TBK_${hex.toUpperCase()} `)).toBe(true);
+    expect(isValidToken(hex)).toBe(false);
     expect(isValidToken('tbk_1234')).toBe(false);
     expect(isValidToken(`gbk_${hex}`)).toBe(false);
   });
@@ -73,23 +73,16 @@ describe('tabi-mcp bridge', () => {
   });
 
   it('passes errors back to the AI app', async () => {
-    const token = randomHex(32);
+    const token = newToken();
     const bridge = await startServer(token);
     startClient(bridge.address, token, vi.fn(async () => { throw new Error('No tab to work in'); }));
     await until(() => bridge.connected);
     await expect(bridge.request('page_snapshot')).rejects.toThrow('No tab to work in');
   });
 
-  it('pairs a token made before the rename (no tbk_ prefix) with the same token prefixed', async () => {
-    const old = randomHex(32);
-    const bridge = await startServer(`tbk_${old}`);
-    const { client } = startClient(bridge.address, old);
-    await until(() => bridge.connected && client.current === 'connected');
-  });
-
   it('refuses to take commands from a server with a different token', async () => {
-    const bridge = await startServer(randomHex(32)); // e.g. something else listening on the port
-    const { client, statuses, handle } = startClient(bridge.address, randomHex(32));
+    const bridge = await startServer(newToken()); // e.g. something else listening on the port
+    const { client, statuses, handle } = startClient(bridge.address, newToken());
     await until(() => client.current === 'rejected');
     expect(statuses.at(-1)).toEqual({ status: 'rejected', detail: 'The tabi-mcp server has a different pairing token' });
     expect(bridge.connected).toBe(false);
@@ -97,7 +90,7 @@ describe('tabi-mcp bridge', () => {
   });
 
   it('says clearly when the extension is not connected', async () => {
-    const bridge = await startServer(randomHex(32));
+    const bridge = await startServer(newToken());
     await expect(bridge.request('tabs_list')).rejects.toThrow(NOT_CONNECTED);
   });
 
@@ -107,7 +100,7 @@ describe('tabi-mcp bridge', () => {
     expect(allowedOrigin('http://localhost:3000')).toBe(false);
     expect(allowedOrigin(undefined)).toBe(false);
 
-    const bridge = await startServer(randomHex(32));
+    const bridge = await startServer(newToken());
     const page = new WebSocketNode(`ws://127.0.0.1:${bridge.address}`, { origin: 'https://evil.example' });
     const refused = await new Promise<boolean>((resolve) => {
       page.on('open', () => resolve(false));

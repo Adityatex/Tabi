@@ -9,8 +9,6 @@
 //   tabi-mcp             run the MCP server (your AI app starts this)
 //   tabi-mcp token       show the pairing token to paste into Tabi
 //   tabi-mcp new-token   make a new token (the old one stops working)
-//
-// genesis-mcp (src/genesis-mcp.ts) is the old name, kept for one release.
 
 import fs from 'node:fs';
 import os from 'node:os';
@@ -23,46 +21,21 @@ import { ExtensionBridge } from './bridgeServer.js';
 import { DEFAULT_PORT, isValidToken, newToken, normalizeToken } from './protocol.js';
 
 const TOKEN_FILE = path.join(os.homedir(), '.tabi-mcp', 'token');
-/** Where genesis-mcp kept the token before the rename; read for one more release. */
-const OLD_TOKEN_FILE = path.join(os.homedir(), '.genesis-mcp', 'token');
 
 /** Notes for people go to stderr: stdout carries the MCP protocol. */
 const note = (msg: string) => console.error(`[tabi-mcp] ${msg}`);
 
-/** TABI_MCP_<name>, or its name before the rename (GENESIS_MCP_<name>) for one more release. */
-function setting(name: 'TOKEN' | 'PORT'): string | undefined {
-  const value = process.env[`TABI_MCP_${name}`];
-  if (value) return value;
-  const old = process.env[`GENESIS_MCP_${name}`];
-  if (old) note(`GENESIS_MCP_${name} is now TABI_MCP_${name}. The old name stops working in the next release.`);
-  return old;
-}
-
-function saveToken(token: string): void {
-  fs.mkdirSync(path.dirname(TOKEN_FILE), { recursive: true, mode: 0o700 });
-  fs.writeFileSync(TOKEN_FILE, token, { mode: 0o600 });
-}
-
 /** The pairing token: TABI_MCP_TOKEN, or the one saved in ~/.tabi-mcp (made on first use). */
 export function loadToken(fresh = false): string {
-  const fromEnv = setting('TOKEN');
+  const fromEnv = process.env.TABI_MCP_TOKEN;
   if (fromEnv && isValidToken(fromEnv)) return normalizeToken(fromEnv);
-  if (!fresh) {
-    for (const file of [TOKEN_FILE, OLD_TOKEN_FILE]) {
-      if (!fs.existsSync(file)) continue;
-      const saved = fs.readFileSync(file, 'utf8');
-      if (!isValidToken(saved)) continue;
-      const token = normalizeToken(saved);
-      // A token from before the rename moves to ~/.tabi-mcp; it still pairs with the one in the extension
-      if (file === OLD_TOKEN_FILE) {
-        saveToken(token);
-        note(`Moved your pairing token from ${OLD_TOKEN_FILE} to ${TOKEN_FILE}.`);
-      }
-      return token;
-    }
+  if (!fresh && fs.existsSync(TOKEN_FILE)) {
+    const saved = fs.readFileSync(TOKEN_FILE, 'utf8');
+    if (isValidToken(saved)) return normalizeToken(saved);
   }
   const token = newToken();
-  saveToken(token);
+  fs.mkdirSync(path.dirname(TOKEN_FILE), { recursive: true, mode: 0o700 });
+  fs.writeFileSync(TOKEN_FILE, token, { mode: 0o600 });
   return token;
 }
 
@@ -180,20 +153,13 @@ function setupHelp(token: string): string {
   ].join('\n');
 }
 
-/** How to switch a setup made before the rename, for the genesis-mcp command. */
-export function renameNote(): string {
-  const script = fileURLToPath(import.meta.url);
-  return 'genesis-mcp is now tabi-mcp. This name keeps working until the next release. '
-    + `To switch, add it to your AI app as "tabi" and remove "genesis", e.g. in Claude Code: claude mcp add tabi -- node "${script}"`;
-}
-
 export async function main(): Promise<void> {
   const command = process.argv[2];
   if (command === 'token' || command === 'new-token') {
     console.log(setupHelp(loadToken(command === 'new-token')));
     return;
   }
-  const port = Number(setting('PORT')) || DEFAULT_PORT;
+  const port = Number(process.env.TABI_MCP_PORT) || DEFAULT_PORT;
   const bridge = new ExtensionBridge(loadToken(), port, note);
   try {
     await bridge.start();

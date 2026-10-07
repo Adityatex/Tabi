@@ -79,7 +79,7 @@ The suite has 10 standard tasks (forms, dropdowns, radios, multi-page flows, slo
 | Cross-origin iframe, Stripe-style (new) | 0/3 | 3/3 |
 | Standard tasks (regression check) | 30/30 | 60/60 |
 
-"Before" is Qwen on Groq; "after" is `deepseek-flash`, since Qwen ran out of free daily quota mid-run. Its after-fix runs that got a response were also 9/9. The hard-task failures were never about the model: before the fixes, the elements weren't even in what the model received. All 9 hard tasks now pass. The fixes changed how the agent sees and acts on the page: it now reaches into Shadow DOM, iframes (including cross-origin ones, through a helper script in each frame) and ARIA widgets, types into rich-text editors, fits long pages into a size budget with a `find` action, checks that each action actually worked, and clicks and types through Chrome's DevTools Protocol, so pages see real input. That last part shows Chrome's "debugging this browser" banner while the agent works, and can be turned off in the popup.
+"Before" is Qwen on Groq; "after" is `deepseek-flash`, since Qwen ran out of free daily quota mid-run. Its after-fix runs that got a response were also 9/9. The hard-task failures were never about the model: before the fixes, the elements weren't even in what the model received. All 9 hard tasks now pass. The fixes changed how the agent sees and acts on the page: it now reaches into Shadow DOM, iframes (including cross-origin ones, through a helper script in each frame) and ARIA widgets, types into rich-text editors, fits long pages into a size budget with a `find` action, checks that each action actually worked, and clicks and types through Chrome's DevTools Protocol, so pages see real input. That last part shows Chrome's "debugging this browser" banner while the agent works, and can be turned off in Settings.
 
 **Expert tier, by model** (before → after adding memory across pages and fixing reasoning-model token limits):
 
@@ -231,8 +231,6 @@ Then, in Tabi's Settings under **AI apps (MCP)**, turn on **Let AI apps control 
 | `browser_run_task` | Hand a whole task to Tabi's own agent (uses the model set up in Tabi) |
 
 **Security.** The bridge is off until you turn it on. `tabi-mcp` listens on `127.0.0.1` only and refuses connections from web pages. Before any command, the extension and the server prove to each other that they hold the same pairing token (HMAC challenge and response, so the token never travels), which stops another program on the port from taking over the browser. Only `http(s)` URLs can be opened. `npm run eval:mcp` checks the whole chain end to end in CI.
-
-**Set up before the rename to Tabi?** It keeps working for one more release: the `genesis-mcp` command, the `GENESIS_MCP_TOKEN` and `GENESIS_MCP_PORT` variables, and your token (moved from `~/.genesis-mcp` to `~/.tabi-mcp`; it still pairs). To switch, run `claude mcp remove genesis`, then add it again as `tabi` with the command above.
 
 ## 🧰 Maintaining
 

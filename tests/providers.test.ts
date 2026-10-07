@@ -5,14 +5,9 @@ import {
 } from '@/lib/api/providers';
 
 describe('readSettings', () => {
-  it('migrates the old Groq-only storage keys', () => {
-    const s = readSettings({ groqApiKey: 'gsk_old', groqModel: 'openai/gpt-oss-120b' });
-    expect(s).toEqual({ provider: 'groq', models: { groq: 'openai/gpt-oss-120b' }, keys: { groq: 'gsk_old' } });
-  });
-
-  it('prefers saved multi-provider settings', () => {
+  it('reads saved settings', () => {
     const saved: StoredLLMSettings = { provider: 'deepseek', models: { deepseek: 'm' }, keys: { deepseek: 'k' } };
-    expect(readSettings({ [SETTINGS_KEY]: saved, groqApiKey: 'gsk_old' }).provider).toBe('deepseek');
+    expect(readSettings({ [SETTINGS_KEY]: saved }).provider).toBe('deepseek');
   });
 
   it('defaults to Groq with nothing saved', () => {

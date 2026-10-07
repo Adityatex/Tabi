@@ -126,8 +126,8 @@ export type TimelineNode =
   | { kind: 'pause'; entry: TimelineEntry; question: string; answer: string }
   | { kind: 'end'; entry: TimelineEntry; status: 'done' | 'failed' | 'stopped' };
 
-const NOTE = /^\((note from (Tabi|Genesis)|invalid response)\)\s*/;
-const SAID = /^\(note from (Tabi|Genesis)\) The user says: "?([\s\S]*?)"?$/;
+const NOTE = /^\((note from Tabi|invalid response)\)\s*/;
+const SAID = /^\(note from Tabi\) The user says: "?([\s\S]*?)"?$/;
 
 /** "Asked to allow: click “Place order”" → "Allow Tabi to click “Place order”?" */
 function askQuestion(text: string): string {
@@ -165,7 +165,7 @@ export function timelineNodes(entries: TimelineEntry[]): TimelineNode[] {
           break;
         }
         const said = SAID.exec(entry.text);
-        if (said) nodes.push({ kind: 'said', entry, text: said[2] });
+        if (said) nodes.push({ kind: 'said', entry, text: said[1] });
         else nodes.push({ kind: 'note', entry, text: entry.text.replace(NOTE, '') });
         break;
       }

@@ -7,7 +7,7 @@ import {
   type RunnerDeps, type RunOptions, type RunView,
 } from '@/lib/agent/runner';
 import {
-  PROVIDERS, PROVIDER_IDS, SETTINGS_KEY, LEGACY_KEYS, readSettings, resolveConfig, resolveChain, resolveExecutor, configProblem,
+  PROVIDERS, PROVIDER_IDS, SETTINGS_KEY, readSettings, resolveConfig, resolveChain, resolveExecutor, configProblem,
   validateBaseUrl, maskKey, type LLMConfig, type ProviderId, type StoredLLMSettings,
 } from '@/lib/api/providers';
 import { formatError, withTimeout } from '@/lib/utils/errorHandler';
@@ -37,7 +37,6 @@ const skillStorage: KeyValueStorage = {
   set: (items) => browser.storage.local.set(items),
 };
 import { createHandlers } from '@/lib/mcp/handlers';
-import { migrateFromGenesis } from '@/lib/utils/renameMigration';
 import { cueOf } from '@/lib/dom/pageCue';
 import { Attention, toolbarIconPaths, type Scheme } from '@/lib/utils/toolbarIcon';
 import { DEFAULT_PORT, isValidToken, normalizeToken } from '@/mcp/src/protocol';
@@ -70,15 +69,6 @@ function releaseKeepAlive(): void {
 export default defineBackground(() => {
   console.log('[Tabi] Background service worker started');
   watchDetach();
-
-  // Data saved before the rename moves to its new keys first; everything that reads storage waits for this
-  const migrated = migrateFromGenesis({
-    get: (keys) => browser.storage.local.get(keys) as Promise<Record<string, unknown>>,
-    set: (items) => browser.storage.local.set(items),
-    remove: (keys) => browser.storage.local.remove(keys),
-    alarmNames: async () => ((await chrome.alarms.getAll()) as { name: string }[]).map((a) => a.name),
-    clearAlarm: (name) => { chrome.alarms.clear(name); },
-  }).catch((err) => console.error('[Tabi] Moving data saved by Genesis:', err));
 
   // ---- Toolbar icon (lib/utils/toolbarIcon.ts): ink to match the toolbar, an amber dot while a task needs you
   const attention = new Attention();
@@ -417,9 +407,9 @@ export default defineBackground(() => {
   }
   chrome.alarms.onAlarm.addListener((alarm: { name: string }) => {
     if (alarm.name === MCP_ALARM) bridge.ensureConnected();
-    else migrated.then(() => onScheduleAlarm(schedulerDeps, alarm.name)).catch((err) => console.error('[Tabi] Schedule:', err));
+    else onScheduleAlarm(schedulerDeps, alarm.name).catch((err) => console.error('[Tabi] Schedule:', err));
   });
-  migrated.then(applyMcp).catch((err) => console.error('[Tabi] MCP bridge:', err));
+  applyMcp().catch((err) => console.error('[Tabi] MCP bridge:', err));
   // ---- Schedules: run a workflow or shortcut automatically (lib/schedules/)
   /** The first line of a run's final message after its heading, for a notification. */
   const resultLine = (message: string) =>
@@ -468,7 +458,7 @@ export default defineBackground(() => {
       return { status: view.status, summary: resultLine(view.message), runId: view.runId };
     },
   };
-  migrated.then(() => syncSchedules(schedulerDeps)).catch((err) => console.error('[Tabi] Schedules:', err));
+  syncSchedules(schedulerDeps).catch((err) => console.error('[Tabi] Schedules:', err));
 
   // Settings can change from elsewhere too (another Settings tab, tests)
   browser.storage.onChanged.addListener((changes, area) => {
@@ -486,7 +476,7 @@ export default defineBackground(() => {
 
   // Provider settings (BYOK: keys are never hardcoded, and only this worker reads them)
   async function loadSettings(): Promise<StoredLLMSettings> {
-    return readSettings(await browser.storage.local.get([SETTINGS_KEY, ...LEGACY_KEYS]));
+    return readSettings(await browser.storage.local.get(SETTINGS_KEY));
   }
 
   /** Config for the active provider, or throws a message saying what's missing. */
@@ -546,7 +536,6 @@ export default defineBackground(() => {
 
     // Handle async operations
     (async () => {
-      await migrated;
       try {
         switch (action) {
           case 'GET_LLM_SETTINGS': {
@@ -588,7 +577,6 @@ export default defineBackground(() => {
               settings.fallbacks = (settings.fallbacks ?? []).filter(id => id !== provider);
             }
             await browser.storage.local.set({ [SETTINGS_KEY]: settings });
-            await browser.storage.local.remove([...LEGACY_KEYS]); // migrated
             sendResponse({
               success: true,
               data: { maskedKey: maskKey(settings.keys[provider] ?? ''), provider: settings.provider, fallbacks: settings.fallbacks },

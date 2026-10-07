@@ -26,3 +26,7 @@ eval/results/
 
 # tabi-mcp build output (npm run build:mcp)
 mcp/dist/
+
+# Private design material (kept out of the public repo)
+design_handoff_tabi/
+docs/design/

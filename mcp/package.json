@@ -4,8 +4,7 @@
   "description": "MCP server that lets Claude Code, Claude Desktop, Codex and other MCP apps drive your browser through the Tabi extension",
   "type": "module",
   "bin": {
-    "tabi-mcp": "dist/server.js",
-    "genesis-mcp": "dist/genesis-mcp.js"
+    "tabi-mcp": "dist/server.js"
   },
   "main": "dist/server.js",
   "files": [

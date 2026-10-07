@@ -69,9 +69,9 @@ export interface RunLog {
   entries: TimelineEntry[];
 }
 
-/** History lines Tabi wrote to the model, rather than steps the agent took. Runs saved before the rename say Genesis. */
+/** History lines Tabi wrote to the model, rather than steps the agent took. */
 export function entryKindOf(line: string): 'step' | 'note' {
-  return /^\((note from (Tabi|Genesis)|invalid response)\)/.test(line) ? 'note' : 'step';
+  return /^\((note from Tabi|invalid response)\)/.test(line) ? 'note' : 'step';
 }
 
 /** A very long run: keep the start and the end, and say how many were left out between. */

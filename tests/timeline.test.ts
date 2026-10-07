@@ -14,7 +14,6 @@ const log = (over: Partial<RunLog> = {}): RunLog => ({
 describe('run timeline', () => {
   it('tells Tabi notes from agent steps', () => {
     expect(entryKindOf('(note from Tabi) 2 more actions not run')).toBe('note');
-    expect(entryKindOf('(note from Genesis) 2 more actions not run')).toBe('note'); // saved before the rename
     expect(entryKindOf('(invalid response) → ❌ No JSON')).toBe('note');
     expect(entryKindOf('click [3] → ✅ Clicked')).toBe('step');
   });
