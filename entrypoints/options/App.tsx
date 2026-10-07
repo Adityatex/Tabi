@@ -4,7 +4,7 @@
 // URL hash (#models, #safety...), so the side panel can link straight to it.
 import React, { useEffect, useState } from 'react';
 import {
-  BookOpen, CalendarClock, Database, IdCard, Info, KeyRound, Plug, Repeat, Shield, SlidersHorizontal, Zap, type LucideIcon,
+  BookOpen, CalendarClock, Database, IdCard, Info, KeyRound, Palette, Plug, Repeat, Shield, SlidersHorizontal, Zap, type LucideIcon,
 } from 'lucide-react';
 import TabiMark from '@/components/TabiMark';
 import Models from './sections/Models';
@@ -13,23 +13,23 @@ import Safety from './sections/Safety';
 import Schedules from './sections/Schedules';
 import Mcp from './sections/Mcp';
 import { Skills, Workflows, Shortcuts } from './sections/Routines';
-import { Autofill, Privacy, About } from './sections/Other';
+import { Autofill, Appearance, Privacy, About } from './sections/Other';
 
-type SectionId = 'models' | 'agent' | 'safety' | 'skills' | 'workflows' | 'shortcuts' | 'schedules' | 'mcp' | 'autofill' | 'privacy' | 'about';
+type SectionId = 'models' | 'agent' | 'safety' | 'skills' | 'workflows' | 'shortcuts' | 'schedules' | 'mcp' | 'autofill' | 'appearance' | 'privacy' | 'about';
 
 const NAV: [string, [SectionId, string, LucideIcon][]][] = [
   ['Setup', [['models', 'Models & keys', KeyRound], ['agent', 'Agent', SlidersHorizontal]]],
   ['Safety', [['safety', 'Safety & sites', Shield]]],
   ['Your routines', [['skills', 'Skills', BookOpen], ['workflows', 'Workflows', Repeat], ['shortcuts', 'Shortcuts', Zap], ['schedules', 'Schedules', CalendarClock]]],
   ['Connections', [['mcp', 'AI apps (MCP)', Plug], ['autofill', 'Autofill profile', IdCard]]],
-  ['Other', [['privacy', 'Privacy & data', Database], ['about', 'About', Info]]],
+  ['Other', [['appearance', 'Appearance', Palette], ['privacy', 'Privacy & data', Database], ['about', 'About', Info]]],
 ];
 const IDS = NAV.flatMap(([, items]) => items.map(([id]) => id));
 const LABEL = Object.fromEntries(NAV.flatMap(([, items]) => items.map(([id, label]) => [id, label]))) as Record<SectionId, string>;
 
 const SECTIONS: Record<SectionId, () => React.ReactNode> = {
   models: Models, agent: Agent, safety: Safety, skills: Skills, workflows: Workflows, shortcuts: Shortcuts,
-  schedules: Schedules, mcp: Mcp, autofill: Autofill, privacy: Privacy, about: About,
+  schedules: Schedules, mcp: Mcp, autofill: Autofill, appearance: Appearance, privacy: Privacy, about: About,
 };
 
 /** The section named in the URL hash, or the first one. */

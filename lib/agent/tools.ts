@@ -56,7 +56,7 @@ export const AGENT_TOOLS: ToolDef[] = [{
               url: { type: 'string', description: 'Full http(s) URL, for navigate' },
               direction: { type: 'string', enum: ['up', 'down'] },
               key: { type: 'string', description: 'Key name for press_key: Enter, Tab, Escape, ...' },
-              summary: { type: 'string', description: 'For done: what was accomplished, or why it is impossible' },
+              summary: { type: 'string', description: 'For done: the result for the user, in Markdown (outcome first, then a short list if there is more), or why it is impossible' },
             },
             required: ['action'],
           },

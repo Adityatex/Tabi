@@ -5,7 +5,9 @@ import '@fontsource-variable/geist';
 import '@fontsource-variable/geist-mono';
 import '@/assets/tabi.css';
 import { reportColorScheme } from '@/lib/utils/toolbarIcon';
+import { initTheme } from '@/lib/utils/theme';
 
+initTheme();
 reportColorScheme();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

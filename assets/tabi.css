@@ -42,8 +42,11 @@
   color-scheme: light;
 }
 
+/* Dark: with the system's setting, unless Settings → Appearance picks Light
+   (data-theme="light"); or always, when it picks Dark (data-theme="dark",
+   below). Keep the two blocks the same. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #0F0F10;
     --surface: #171719;
     --raised: #202023;
@@ -65,6 +68,29 @@
     --red-bg: #2C1412;
     color-scheme: dark;
   }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0F0F10;
+  --surface: #171719;
+  --raised: #202023;
+  --border: #2D2D31;
+  --border-strong: #3D3D42;
+  --text: #F1F1EF;
+  --muted: #9D9DA4;
+  --accent: #8394FF;
+  --accent-text: #0B0F33;
+  --accent-soft: #1A2050;
+  --amber: #FFB547;
+  --amber-bg: #2A1F0C;
+  --amber-line: #8F6420;
+  --amber-solid: #FFB23F;
+  --amber-on: #241500;
+  --green: #5DCB80;
+  --green-bg: #10231A;
+  --red: #FF6E61;
+  --red-bg: #2C1412;
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -184,13 +210,25 @@ html, body {
 
   .scroll-thin { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
 
-  /* Answers, rendered from the model's Markdown (lib/utils/markdown.ts) */
+  /* Answers and task results, rendered from the model's Markdown (lib/utils/markdown.ts) */
+  .answer > * + * { margin-top: 8px; }
   .answer strong { font-weight: 600; }
-  .answer .md-h1, .answer .md-h2, .answer .md-h3 { font-size: 14px; font-weight: 600; margin: 6px 0 2px; }
-  .answer .md-ul { margin: 2px 0; padding-left: 18px; list-style: disc; }
-  .answer .md-oli { margin-left: 18px; list-style: decimal; }
+  .answer a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+  .answer .md-h1, .answer .md-h2, .answer .md-h3 { font-size: 14px; font-weight: 600; }
+  .answer > .md-h1, .answer > .md-h2, .answer > .md-h3 { margin-top: 12px; }
+  .answer > :first-child { margin-top: 0; }
+  .answer .md-ul, .answer .md-ol { padding-left: 20px; }
+  .answer .md-ul { list-style: disc; }
+  .answer .md-ol { list-style: decimal; }
+  .answer .md-ul .md-ul { list-style: circle; }
+  .answer li + li, .answer li > .md-ul, .answer li > .md-ol { margin-top: 4px; }
+  .answer li::marker { color: var(--muted); }
+  .answer .md-table { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--r); }
+  .answer table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .answer th, .answer td { padding: 5px 8px; text-align: left; vertical-align: top; border-top: 1px solid var(--border); }
+  .answer thead th { border-top: 0; background: var(--bg); font-weight: 600; }
   .answer .md-quote { border-left: 2px solid var(--border-strong); padding-left: 10px; color: var(--muted); }
-  .answer .md-hr { border: 0; border-top: 1px solid var(--border); margin: 8px 0; }
+  .answer .md-hr { border: 0; border-top: 1px solid var(--border); }
   .answer .inline-code { font-family: var(--mono); font-size: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 3px; padding: 0 3px; }
   .answer .code-block { font-family: var(--mono); font-size: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 8px 10px; overflow-x: auto; white-space: pre-wrap; }
 }

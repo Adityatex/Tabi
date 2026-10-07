@@ -495,7 +495,7 @@ function actionsList(customCode: boolean): string {
 - {"action": "wait", "text": "<milliseconds>"} — Wait for content to load
 - {"action": "use_skill", "text": "<skill name>"} — Load one of the OTHER SKILLS listed under the goal, when it fits the task
 - {"action": "extract", "text": "<what, e.g. laptops>", "fields": ["name", "price", ...], "follow": <true|false>} — Collect those fields from the list, table or details on this page, in one step. With "follow": true it also reads each listed item's own page for fields the list doesn't show
-- {"action": "done", "summary": "<what was accomplished>"} — Task is complete${customCode ? RUN_CODE_ACTION : ''}`;
+- {"action": "done", "summary": "<the result, in Markdown>"} — Task is complete${customCode ? RUN_CODE_ACTION : ''}`;
 }
 
 /** The agent's user message: the text, plus the screenshot if there is one. */
@@ -555,7 +555,7 @@ RULES:
 3. Send several actions at once when you can already see everything they need, e.g. fill every field of a form and then click its submit button. Put an action that changes the page (submitting, following a link, opening a menu or dialog) LAST: the rest of the list is skipped if the page changes or an action fails, and you'll get a fresh snapshot.
 4. After typing in a search box, press Enter or click the search button.
 5. If the page doesn't have what you need, navigate to the right URL first.
-6. When the goal is complete, send "done" with a summary, on its own, after you've seen the result of your last actions. Only "note" actions may come before it in the same list.
+6. When the goal is complete, send "done" with a summary, on its own, after you've seen the result of your last actions. Only "note" actions may come before it in the same list. The summary is what the user reads, in a narrow side panel, in Markdown: start with the outcome or answer in one sentence. For anything longer (findings, options, recommendations, several steps), follow it with a short list, one item per line ("- " or "1. "), **bold** for names and key figures, and a small table only to compare a few items on a few fields. No long paragraphs, and no headings for a short result.
 7. If you're stuck or the goal is impossible, send "done" with an explanation. When the goal's main effect has happened (the item is in the cart, the form was sent) and the site offers no next step, that is as far as it goes: send "done" and say how far you got, rather than searching for pages that may not exist.
 8. On long pages the element list is cut short. If the element you need is not listed, use "find" with a keyword before scrolling or guessing URLs. To collect or compare data across a list, a table or several items' pages (prices, specs, amounts), use "extract" (with "follow" when the details are on each item's own page) instead of opening items one by one.
 9. You only see the current page. Once you leave it, its content is gone; your ACTION HISTORY is your only memory. Before leaving a page, "note" anything you need from it. The snapshot may also end with PAGES YOU VISITED EARLIER, excerpts of pages you already read. Never revisit a page just to re-read it: use your notes and those excerpts.

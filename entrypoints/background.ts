@@ -412,8 +412,10 @@ export default defineBackground(() => {
   applyMcp().catch((err) => console.error('[Tabi] MCP bridge:', err));
   // ---- Schedules: run a workflow or shortcut automatically (lib/schedules/)
   /** The first line of a run's final message after its heading, for a notification. */
+  /** The first line of a result, as plain text for a notification. */
   const resultLine = (message: string) =>
-    message.split('\n').map((l) => l.trim()).find((l) => l && !l.startsWith('#') && !l.startsWith('---')) ?? '';
+    (message.split('\n').map((l) => l.trim()).find((l) => l && !l.startsWith('#') && !l.startsWith('---')) ?? '')
+      .replace(/^([-*+]|\d+[.)])\s+/, '').replace(/\*\*|__|`/g, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
 
   const schedulerDeps: SchedulerDeps = {
     storage: skillStorage,

@@ -10,6 +10,7 @@ import {
 import TabiMark, { type TabiMarkState } from '@/components/TabiMark';
 import { formatRunLog, MAX_RUNS, type RunLog } from '@/lib/agent/timeline';
 import { formatElapsed } from '@/lib/panel/view';
+import { renderMarkdown } from '@/lib/utils/markdown';
 import {
   callsLabel, compactNumber, FILTERS, foldTimeline, groupByDay, matchesRun, runMark, runSite, runStats, runTags, seenChanges,
   startedFrom, timelineNodes, type RunFilter, type RunHeader, type RunMark, type TimelineNode,
@@ -381,7 +382,7 @@ function NodeItem({ node, run, at }: { node: TimelineNode; run: RunLog; at: (t: 
         <Item dot={<TabiMark size={13} state={state} label="" />} tone={tone} last kind="end">
           <div className={`px-[14px] py-3 rounded-card border ${node.status === 'failed' ? 'border-red bg-red-bg' : 'border-border bg-surface'}`}>
             <Line title={node.status === 'done' ? 'Done' : node.status === 'failed' ? 'Failed' : 'Stopped'} strong time={at(node.entry.at)} />
-            {summary && summary !== run.status && <div className="mt-1 leading-[1.55] [overflow-wrap:anywhere] whitespace-pre-line">{summary}</div>}
+            {summary && summary !== run.status && <div className="answer mt-1 leading-[1.55] [overflow-wrap:anywhere]" dangerouslySetInnerHTML={{ __html: renderMarkdown(summary) }} />}
             {run.workflow && <div className="text-[12px] text-muted mt-[6px]">Replayed the workflow <span className="font-mono">/{run.workflow}</span></div>}
           </div>
         </Item>

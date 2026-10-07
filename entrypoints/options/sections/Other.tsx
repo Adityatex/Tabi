@@ -1,11 +1,12 @@
 // entrypoints/options/sections/Other.tsx
-// Autofill profile, Privacy & data, and About.
+// Autofill profile, Appearance, Privacy & data, and About.
 import { useEffect, useState } from 'react';
 import { ArrowUpRight, Database, History, Keyboard, Trash2 } from 'lucide-react';
 import { loadStoredProfile, saveStoredProfile, PROFILE_FIELDS, DEFAULT_PROFILE, type AutofillProfile } from '@/lib/automation/profile';
 import { MAX_RUNS } from '@/lib/agent/timeline';
 import TabiMark from '@/components/TabiMark';
-import { Card, Field, Notice, PageHead, TextInput, send } from '../ui';
+import { Card, ControlRow, Field, Notice, PageHead, Segmented, TextInput, send } from '../ui';
+import { THEMES, loadTheme, saveTheme, type Theme } from '@/lib/utils/theme';
 
 export function Autofill() {
   const [profile, setProfile] = useState<AutofillProfile>({ ...DEFAULT_PROFILE });
@@ -46,12 +47,45 @@ export function Autofill() {
   );
 }
 
+export function Appearance() {
+  const [theme, setTheme] = useState<Theme>('system');
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => { loadTheme().then(setTheme).catch(() => {}); }, []);
+
+  const choose = async (next: Theme) => {
+    const before = theme;
+    setTheme(next);
+    setError(null);
+    try {
+      await saveTheme(next);
+    } catch (err) {
+      setTheme(before);
+      setError((err as Error)?.message || 'Couldn’t save it');
+    }
+  };
+
+  return (
+    <>
+      <PageHead title="Appearance">How the side panel, Settings and History look.</PageHead>
+      <Card bare testId="appearance">
+        <ControlRow
+          title="Theme"
+          note="System follows your computer’s light or dark setting. The change shows everywhere at once. The toolbar icon follows the browser, and the cue on a page follows that page."
+          control={<Segmented<Theme> label="Theme" value={theme} onChange={choose} options={THEMES} />}
+        >
+          {error && <Notice kind="error">{error}</Notice>}
+        </ControlRow>
+      </Card>
+    </>
+  );
+}
+
 const STORED: [string, string][] = [
   ['API keys', 'In this browser only. Each is sent only to its own provider, and this page only ever sees them masked.'],
   ['Pages Tabi reads', 'Sent to the AI provider you chose, as part of each request. Nothing goes anywhere else.'],
   ['Run history', `The last ${MAX_RUNS} tasks, step by step, in this browser. Typed passwords and card numbers are masked.`],
   ['Skills, workflows, shortcuts, schedules', 'In this browser. A workflow that types a password keeps it here, like your keys.'],
-  ['Autofill profile and site lists', 'In this browser.'],
+  ['Autofill profile, site lists and appearance', 'In this browser.'],
 ];
 
 export function Privacy() {

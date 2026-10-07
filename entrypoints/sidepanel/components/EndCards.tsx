@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import TabiMark from '@/components/TabiMark';
 import type { RunView } from '@/lib/agent/runner';
+import { renderMarkdown } from '@/lib/utils/markdown';
 import { failureKind, formatElapsed, planItems, siteOf } from '@/lib/panel/view';
 
 const card = 'bg-surface border border-border rounded-card p-[14px]';
@@ -48,7 +49,11 @@ export function DoneCard({ run, save, offerClosed, onSave, onCloseOffer, onTimel
     <>
       <div className={card}>
         <div className="flex items-center gap-2 font-semibold text-[14px]"><TabiMark state="done" size={16} label="" />Done</div>
-        <div className="mt-2 text-[13.5px] leading-[1.55] [text-wrap:pretty] [overflow-wrap:anywhere]" data-testid="summary">{run.outcome || 'Finished.'}</div>
+        <div
+          className="answer mt-2 text-[13.5px] leading-[1.55] [text-wrap:pretty] [overflow-wrap:anywhere]"
+          data-testid="summary"
+          dangerouslySetInnerHTML={{ __html: renderMarkdown(run.outcome || 'Finished.') }}
+        />
         <div className="grid grid-cols-3 gap-[6px] mt-3 pt-3 border-t border-border">
           {stats.map(([value, label]) => (
             <div key={label}><div className="font-mono text-[13px] font-medium">{value}</div><div className="text-[11px] text-muted">{label}</div></div>
