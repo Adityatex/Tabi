@@ -481,8 +481,24 @@ export default defineBackground(() => {
   });
 
   // Store the default API key on install
-  browser.runtime.onInstalled.addListener(async () => {
+  browser.runtime.onInstalled.addListener(async (details: { reason: string }) => {
     console.log('[Tabi] Installed — BYOK mode, no default key stored');
+    // Chrome only puts content scripts into pages loaded after an install or
+    // update: tabs already open have none, or the old version's, cut off from
+    // this one. Add the new ones, so the cue, the toolbar on selected text and
+    // the agent work there without reloading each page.
+    if (details.reason !== 'install' && details.reason !== 'update') return;
+    const tabs: { id?: number; url?: string; discarded?: boolean }[] = await chrome.tabs.query({}).catch(() => []);
+    for (const tab of tabs) {
+      if (tab.id === undefined || tab.discarded) continue;
+      const tabId = tab.id;
+      // A page that loaded since has this version's script already, which answers; an old one can't
+      const live = await chrome.tabs.sendMessage(tabId, { action: 'AGENT_PING' }).then((r: any) => !!r?.ok).catch(() => false);
+      if (live) continue;
+      // Without the tabs permission URLs may be hidden: try every tab; chrome:// and store pages refuse
+      chrome.scripting.executeScript({ target: { tabId }, files: ['content-scripts/content.js'] }).catch(() => {});
+      chrome.scripting.executeScript({ target: { tabId, allFrames: true }, files: ['content-scripts/frame.js'] }).catch(() => {});
+    }
   });
 
   // Provider settings (BYOK: keys are never hardcoded, and only this worker reads them)
