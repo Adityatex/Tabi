@@ -90,8 +90,11 @@ jobs:
       - name: Run timeline is saved and shown (History page, tokens, masked password, export, delete)
         run: npm run eval:history
 
-      - name: Settings page works (provider and masked key, backups and order, safety, schedules, deep links)
+      - name: Settings page works (provider and masked key, backups and order, safety, schedules, deep links, open shortcut)
         run: npm run eval:settings
+
+      - name: Skills from the / menu (listed, picked, in the first prompt, background tab, unknown name)
+        run: npm run eval:skills
 
       - name: Save as skill, then reuse it (mock)
         run: npm run eval:mock -- --task login --trials 2 --learn --timeout 45

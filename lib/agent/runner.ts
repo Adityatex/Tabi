@@ -45,6 +45,8 @@ export interface RunView {
   replay?: 'replaying' | 'replayed' | 'healed';
   /** The workflow being replayed. */
   workflowName?: string;
+  /** Skills the user chose for this task (/skill-name), always in the prompt. */
+  chosenSkills?: string[];
   /** Why this run can't be saved as a workflow, if it can't. */
   unrecordable?: string;
   /**
@@ -178,9 +180,11 @@ interface Run extends RunView {
   noVision: Set<string>;
   /** The snapshot the model last saw, to tell it what its actions changed. */
   lastSnapshot?: { url?: string; text: string };
-  /** The user's saved skills, and the ones the model loaded with use_skill. */
+  /** The user's saved skills, and the ones in the prompt in full: chosen by the user, or loaded by the model with use_skill. */
   skills: Skill[];
   loadedSkills: Set<string>;
+  /** The skills the user chose for this task (/skill-name). */
+  chosenSkills: string[];
   customCode: boolean;
   /** The model's summary when it finished. */
   summary?: string;
@@ -214,6 +218,8 @@ export interface RunOptions {
   screenshots?: ScreenshotMode;
   /** The user's saved skills (lib/skills); relevant ones are shown to the model. */
   skills?: Skill[];
+  /** Skills the user chose for this task (/skill-name): in the prompt in full from the first step, whatever their fit. */
+  useSkills?: string[];
   /** The user turned on run_code (lib/agent/customCode.ts). */
   customCode?: boolean;
   /** Replay this saved workflow (no model calls), letting the agent take over if a step fails. */
@@ -411,6 +417,7 @@ function view(run: Run): RunView {
   const outcome = status === 'done' ? run.summary : status === 'stopped' ? run.stopReason : status === 'error' ? run.error : undefined;
   return {
     goal, status, message, loading, step, plan, model, updatedAt, replay, unrecordable, asking, workflowName: run.workflow?.name, runId: run.id,
+    ...(run.chosenSkills.length ? { chosenSkills: run.chosenSkills } : {}),
     steps, ...(hidden ? { hiddenSteps: hidden } : {}), phase: status === 'running' ? phase : undefined, pausedFor, started, calls, outcome,
     ...(act?.elementId !== undefined ? { target: act.elementId } : {}),
     ...(run.workflow && replay === 'replaying' ? { replaySteps: replaySteps(run) } : {}),
@@ -1212,13 +1219,14 @@ async function loop(deps: RunnerDeps, run: Run): Promise<void> {
  */
 export async function startRun(deps: RunnerDeps, tabId: number, goal: string, options: RunOptions = {}): Promise<RunView> {
   stopRun(tabId);
+  const chosen = (options.useSkills ?? []).filter((name) => options.skills?.some((s) => s.name === name));
 
   const run: Run = {
     tabId, goal, status: 'running', message: '', loading: true, step: 0, plan: [], updatedAt: Date.now(), history: [],
     stopRequested: false, loads: 0, visited: new Map(), repeats: new Map(), checkpoint: Math.max(0, options.checkpoint ?? 0),
     split: !!options.split, needPlanner: true, routineCalls: 0, roleModels: {},
     screenshots: options.screenshots ?? 'off', noVision: new Set(),
-    skills: options.skills ?? [], loadedSkills: new Set(), customCode: !!options.customCode, confirm: !!options.confirm,
+    skills: options.skills ?? [], loadedSkills: new Set(chosen), chosenSkills: chosen, customCode: !!options.customCode, confirm: !!options.confirm,
     critic: !!options.critic, sites: new Set(), cleared: new Set(), refused: new Map(), sitesOk: new Set(),
     id: `${Date.now().toString(36)}-${tabId}`, started: Date.now(), timeline: [], calls: 0, checks: 0, tokens: 0, secrets: new Set(), source: options.source,
     trace: [], steps: [], workflow: options.workflow, replayIndex: 0, ...(options.workflow ? { replay: 'replaying' as const } : {}),

@@ -1,9 +1,9 @@
 // entrypoints/sidepanel/components/Composer.tsx
 // The one input box: ask about the page or tell Tabi what to do. Auto picks
 // Answer or Do it from the words, and the chip switches it. Background runs
-// the task in a new tab. Typing / opens shortcuts, workflows and commands.
+// the task in a new tab. Typing / opens shortcuts, workflows, skills and commands.
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { AppWindow, ArrowUp, Check, ChevronDown, FileText, FormInput, MessageCircle, Repeat, TextSelect, Zap, type LucideIcon } from 'lucide-react';
+import { AppWindow, ArrowUp, BookOpen, Check, ChevronDown, FileText, FormInput, MessageCircle, Repeat, TextSelect, Zap, type LucideIcon } from 'lucide-react';
 import { blanks, matchItems, type PickerItem } from '@/lib/shortcuts/shortcut';
 import { useOpenShortcut } from '@/components/useOpenShortcut';
 
@@ -19,7 +19,8 @@ const COMMAND_LABEL: Record<string, [string, LucideIcon]> = {
   summarize: ['Summarize', FileText], explain: ['Explain selection', TextSelect], autofill: ['Autofill', FormInput],
 };
 const GROUPS: { kind: PickerItem['kind']; label: string }[] = [
-  { kind: 'shortcut', label: 'Shortcuts' }, { kind: 'workflow', label: 'Workflows' }, { kind: 'command', label: 'Commands' },
+  { kind: 'shortcut', label: 'Shortcuts' }, { kind: 'workflow', label: 'Workflows' }, { kind: 'skill', label: 'Skills' },
+  { kind: 'command', label: 'Commands' },
 ];
 
 interface Props {
@@ -101,7 +102,7 @@ export default function Composer(props: Props) {
       }
       if (e.key === 'Tab') {
         e.preventDefault();
-        // A command runs; a workflow or shortcut gets its name in the box, to add words after it
+        // A command runs; a workflow, shortcut or skill gets its name in the box, to add words after it
         const item = ordered[highlight];
         if (item.kind === 'command') onPick(item);
         else complete(item);
@@ -134,7 +135,7 @@ export default function Composer(props: Props) {
       {open && (
         <div
           role="listbox"
-          aria-label="Shortcuts, workflows and commands"
+          aria-label="Shortcuts, workflows, skills and commands"
           className="absolute left-[10px] right-[10px] bottom-full mb-2 bg-raised border border-border rounded-card shadow-[0_12px_36px_rgba(0,0,0,.16)] p-[6px] text-[12.5px] max-h-[60vh] overflow-y-auto scroll-thin z-10"
         >
           {GROUPS.map((group, gi) => {
@@ -148,7 +149,7 @@ export default function Composer(props: Props) {
                   const i = ordered.indexOf(item);
                   const on = i === highlight;
                   const [label, CommandIcon] = COMMAND_LABEL[item.name] ?? [item.name, Zap];
-                  const Icon = item.kind === 'workflow' ? Repeat : item.kind === 'command' ? CommandIcon : Zap;
+                  const Icon = item.kind === 'workflow' ? Repeat : item.kind === 'skill' ? BookOpen : item.kind === 'command' ? CommandIcon : Zap;
                   const fill = item.kind === 'shortcut' ? blanks(item.detail) : [];
                   return (
                     <div
@@ -165,15 +166,15 @@ export default function Composer(props: Props) {
                           ? <span className="font-medium">{label}</span>
                           : <span className={`font-mono font-medium truncate max-w-[60%] ${on ? 'text-accent' : ''}`}>/{item.name}</span>}
                         {fill.length > 0 && <span className="font-mono text-muted whitespace-nowrap overflow-hidden text-ellipsis">{fill.map((b) => `{${b}}`).join(' ')}</span>}
-                        {item.kind !== 'shortcut' && (
+                        {item.kind !== 'shortcut' && (item.kind !== 'skill' || item.site) && (
                           <span className="text-[11.5px] text-muted whitespace-nowrap overflow-hidden text-ellipsis min-w-0">
-                            {item.kind === 'workflow' ? `${item.steps ?? '?'} steps${item.site ? ` · ${item.site}` : ''} · no AI calls` : item.detail}
+                            {item.kind === 'workflow' ? `${item.steps ?? '?'} steps${item.site ? ` · ${item.site}` : ''} · no AI calls` : item.kind === 'skill' ? item.site : item.detail}
                           </span>
                         )}
                         <span className="flex-1" />
                         {on && item.kind !== 'command' && <span className="font-mono text-[10.5px] text-muted border border-border-strong rounded-[3px] px-1 flex-none">Tab</span>}
                       </div>
-                      {item.kind === 'shortcut' && <div className="text-[11.5px] text-muted mt-[3px] ml-[21px] [overflow-wrap:anywhere]">{item.detail}</div>}
+                      {(item.kind === 'shortcut' || item.kind === 'skill') && <div className="text-[11.5px] text-muted mt-[3px] ml-[21px] [overflow-wrap:anywhere]">{item.detail}</div>}
                     </div>
                   );
                 })}
@@ -237,7 +238,7 @@ export default function Composer(props: Props) {
             <AppWindow size={12} aria-hidden />Background
           </button>
           <div className="flex-1" />
-          <span className="font-mono text-[11px] text-muted border border-border rounded-[4px] px-[5px] leading-[18px]" title="Type / for shortcuts, workflows and commands">/</span>
+          <span className="font-mono text-[11px] text-muted border border-border rounded-[4px] px-[5px] leading-[18px]" title="Type / for shortcuts, workflows, skills and commands">/</span>
           <button
             type="button"
             onClick={onSubmit}

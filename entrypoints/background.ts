@@ -21,7 +21,7 @@ import { TaskQueue, TaskCancelled } from '@/lib/agent/taskQueue';
 import { annotate, base64ToBlob, type VisualInfo } from '@/lib/agent/screenshot';
 import { PREFS_KEY, DEFAULT_PREFS, type AgentPrefs } from '@/lib/agent/prefs';
 import { BridgeClient, type BridgeStatus } from '@/lib/mcp/bridgeClient';
-import { parseSkill, formatSkill, slugify } from '@/lib/skills/skill';
+import { parseSkill, formatSkill, slugify, type Skill } from '@/lib/skills/skill';
 import { loadWorkflows, saveWorkflow, deleteWorkflow, workflowName, type Workflow } from '@/lib/workflows/workflow';
 import { loadShortcuts, saveShortcut, deleteShortcut, fillPrompt, blanks } from '@/lib/shortcuts/shortcut';
 import { loadSchedules } from '@/lib/schedules/schedule';
@@ -335,6 +335,15 @@ export default defineBackground(() => {
     queuedViews.delete(tabId);
     backgroundTabs.delete(tabId);
   });
+
+  /** The saved skills, and the one the user chose (payload.skill, from /skill-name) if any; an unknown one is an error. */
+  async function skillsFor(chosen: unknown): Promise<{ skills: Skill[]; useSkills?: string[] }> {
+    const skills = await loadSkills(skillStorage);
+    if (chosen === undefined || chosen === null || chosen === '') return { skills };
+    const name = slugify(String(chosen));
+    if (!skills.some((s) => s.name === name)) throw new Error(`There is no skill named "${chosen}"`);
+    return { skills, useSkills: [name] };
+  }
 
   function runAgent(tabId: number, goal: string, options: RunOptions): void {
     executeRun(tabId, goal, options).catch((err) => console.error('[Tabi] Agent run failed:', err));
@@ -657,7 +666,7 @@ export default defineBackground(() => {
             const prefs = await loadPrefs();
             runAgent(tabId, goal, {
               checkpoint: prefs.stepCheckpoint, split: hasExecutor(await loadSettings()), screenshots: prefs.screenshots,
-              skills: await loadSkills(skillStorage), customCode: prefs.customCode, confirm: prefs.confirmRisky, critic: prefs.critic, source: 'panel',
+              ...await skillsFor(payload?.skill), customCode: prefs.customCode, confirm: prefs.confirmRisky, critic: prefs.critic, source: 'panel',
             });
             sendResponse({ success: true });
             break;
@@ -679,6 +688,7 @@ export default defineBackground(() => {
               if (!goal) throw new Error('No task to run');
               await requireConfig();
             }
+            const skills = await skillsFor(workflow ? undefined : payload?.skill);
             const tab = await chrome.tabs.create({
               url: workflow?.startUrl ?? url, active: false,
               ...(from ? { windowId: from.windowId, index: from.index + 1 } : {}),
@@ -688,7 +698,7 @@ export default defineBackground(() => {
             const prefs = await loadPrefs();
             runAgent(tab.id, goal, {
               checkpoint: prefs.stepCheckpoint, split: hasExecutor(await loadSettings()), screenshots: prefs.screenshots,
-              skills: await loadSkills(skillStorage), customCode: prefs.customCode, confirm: prefs.confirmRisky, critic: prefs.critic, workflow, source: 'background',
+              ...skills, customCode: prefs.customCode, confirm: prefs.confirmRisky, critic: prefs.critic, workflow, source: 'background',
             });
             sendResponse({ success: true, data: { tabId: tab.id } });
             break;
@@ -890,13 +900,14 @@ export default defineBackground(() => {
           }
 
           case 'PICKER_ITEMS': {
-            // The side panel's / picker: workflows (replayed) and shortcuts (saved prompts)
-            const [workflows, shortcuts] = await Promise.all([loadWorkflows(skillStorage), loadShortcuts(skillStorage)]);
+            // The side panel's / picker: workflows (replayed), shortcuts (saved prompts) and skills (instructions for a task)
+            const [workflows, shortcuts, skills] = await Promise.all([loadWorkflows(skillStorage), loadShortcuts(skillStorage), loadSkills(skillStorage)]);
             sendResponse({
               success: true,
               data: [
                 ...workflows.map((w) => ({ kind: 'workflow', name: w.name, detail: w.goal, steps: w.steps.length, site: hostOf(w.startUrl) })),
                 ...shortcuts.map((s) => ({ kind: 'shortcut', name: s.name, detail: s.prompt })),
+                ...skills.map((s) => ({ kind: 'skill', name: s.name, detail: s.description, ...(s.sites.length ? { site: s.sites.join(', ') } : {}) })),
               ],
             });
             break;

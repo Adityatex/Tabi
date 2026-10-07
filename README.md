@@ -160,7 +160,7 @@ Pitfalls:
 - Accept the cookie banner first: it covers the "Orders" link.
 ```
 
-The agent gets the skills that fit the current site and task in full, and can load any other by name. When a task finishes, the side panel offers **Save as skill**: the model writes one from what just happened, naming buttons by their labels and noting what went wrong and how it was fixed. Anything typed during the task, passwords included, is replaced by a placeholder, and skills record how to do a task, not this time's answer (prices and stock go stale). Skills are listed, edited, pasted in and deleted in Settings. Only add skills you trust: the agent follows them.
+The agent gets the skills that fit the current site and task in full, and can load any other by name. To choose one yourself, type `/` in the side panel and pick it from **Skills** (or type `/skill-name` and the task, e.g. `/house-style reply to Sam`): it is in the prompt from the first step, whatever the task. When a task finishes, the side panel offers **Save as skill**: the model writes one from what just happened, naming buttons by their labels and noting what went wrong and how it was fixed. Anything typed during the task, passwords included, is replaced by a placeholder, and skills record how to do a task, not this time's answer (prices and stock go stale). Skills are listed, edited, pasted in and deleted in Settings. Only add skills you trust: the agent follows them.
 
 ## 🔁 Workflows: record once, replay for free
 

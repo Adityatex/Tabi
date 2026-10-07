@@ -48,7 +48,7 @@ export function Skills() {
 
   return (
     <>
-      <PageHead title="Skills">Instructions Tabi follows on tasks you repeat. It uses a skill when it fits the site and the task. After a task finishes, the side panel offers “Save as skill”: Tabi writes one from what it just did.</PageHead>
+      <PageHead title="Skills">Instructions Tabi follows on tasks you repeat. It uses a skill when it fits the site and the task, or when you name it: type /skill-name in the side panel, then what to do. After a task finishes, the side panel offers “Save as skill”: Tabi writes one from what it just did.</PageHead>
       <Card bare testId="skills">
         <div className="px-3 py-2">
           {skills.length > 0 ? (

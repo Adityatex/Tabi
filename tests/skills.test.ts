@@ -174,4 +174,13 @@ describe('skills in a run', () => {
     // use_skill never reaches the page
     expect((d.send as any).mock.calls.some(([, m]: any) => m.action === 'AGENT_EXECUTE')).toBe(false);
   });
+
+  it('puts a skill the user chose (/name) in full from the first step, however little the goal looks like it', async () => {
+    const skills = [skill('house-style', 'Write replies in our house style', [], '1. Sign off with "Cheers".'), skill('returns', 'Return an item', [], '1. Open Returns.')];
+    const { d, goals } = deps(['{"action":"done","summary":"ok"}']);
+    const view = await startRun(d, 91, 'answer the message from Sam', { skills, useSkills: ['house-style', 'no-such-skill'] });
+    expect(goals[0]).toContain('### house-style: Write replies in our house style\n1. Sign off with "Cheers".');
+    expect(goals[0]).toContain('- returns: Return an item');
+    expect(view.chosenSkills).toEqual(['house-style']);
+  });
 });

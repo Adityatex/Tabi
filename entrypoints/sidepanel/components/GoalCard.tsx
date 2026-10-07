@@ -2,7 +2,7 @@
 // The task at the top of a run: the goal, its status, time and steps, Stop
 // (always in reach while it's active), and the plan, folded to a bar or open.
 import { useEffect, useState } from 'react';
-import { Check, ChevronDown, ChevronUp, CircleCheck, Hourglass, Lock, Repeat, Square, X } from 'lucide-react';
+import { BookOpen, Check, ChevronDown, ChevronUp, CircleCheck, Hourglass, Lock, Repeat, Square, X } from 'lucide-react';
 import TabiMark from '@/components/TabiMark';
 import type { RunView } from '@/lib/agent/runner';
 import { formatElapsed, planItems, statusPill, type PillTone } from '@/lib/panel/view';
@@ -65,6 +65,11 @@ export default function GoalCard({ run, queuePosition, confirmOn, onStop }: Prop
     <section className="mt-[10px] mx-[10px] bg-surface border border-border rounded-ctl overflow-hidden flex-none" aria-label="Task" data-run-status={run.status}>
       <div className="px-3 pt-[11px] pb-[10px]">
         {run.workflowName && <div className="font-mono text-[11px] text-muted mb-1">/{run.workflowName}</div>}
+        {run.chosenSkills && (
+          <div className="flex items-center gap-[5px] text-[11px] text-muted mb-1" data-testid="chosen-skills">
+            <BookOpen size={11} aria-hidden />with <span className="font-mono">{run.chosenSkills.map((s) => `/${s}`).join(', ')}</span>
+          </div>
+        )}
         <h2 className="text-[14px] font-semibold leading-[1.35] [text-wrap:pretty] [overflow-wrap:anywhere]">{run.goal}</h2>
         <div className="flex items-center gap-2 mt-[9px] flex-wrap">
           <span className={`flex items-center gap-[6px] h-[22px] px-2 rounded-full text-[11.5px] font-semibold ${PILL[pill.tone]}`} data-testid="status">

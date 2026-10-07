@@ -50,11 +50,11 @@ export function fillPrompt(prompt: string, args: string): { text: string; comple
 /** Something the / picker can offer. */
 export interface PickerItem {
   /** command: one of the side panel's own (summarize, explain, autofill). */
-  kind: 'workflow' | 'shortcut' | 'command';
+  kind: 'workflow' | 'shortcut' | 'skill' | 'command';
   name: string;
-  /** What it does: the workflow's goal, the saved prompt, or a command's hint. */
+  /** What it does: the workflow's goal, the saved prompt, the skill's description, or a command's hint. */
   detail: string;
-  /** Workflows: how many steps it replays, and the site it starts on. */
+  /** Workflows: how many steps it replays, and the site it starts on. Skills: the sites they're for. */
   steps?: number;
   site?: string;
 }

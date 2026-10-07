@@ -153,10 +153,12 @@ export default function App() {
 
   // ---- Tasks
   const [notice, setNotice] = useState<string | null>(null);
-  const startTask = async (goal: string, opts: { workflow?: string } = {}) => {
+  /** Run a task: `goal` by the agent, with `skill` in its prompt if the user chose one, or `workflow` replayed. */
+  const startTask = async (goal: string, opts: { workflow?: string; skill?: string } = {}) => {
     if (tabId === undefined) return;
+    const skill = opts.skill ? { skill: opts.skill } : {};
     if (background) {
-      const res = await send('START_BACKGROUND_TASK', { tabId, ...(opts.workflow ? { workflow: opts.workflow } : { goal }) });
+      const res = await send('START_BACKGROUND_TASK', { tabId, ...(opts.workflow ? { workflow: opts.workflow } : { goal, ...skill }) });
       if (!res.success) {
         addAnswer(tabId, { id: newId(), question: goal, error: `Couldn’t start it: ${res.error}` });
         return false;
@@ -167,7 +169,7 @@ export default function App() {
     }
     update(tabId, (s) => ({ show: 'run', save: {}, offerClosed: s.offerClosed }));
     forget(tabId);
-    const res = opts.workflow ? await send('RUN_WORKFLOW', { tabId, name: opts.workflow }) : await send('START_AGENT', { tabId, goal });
+    const res = opts.workflow ? await send('RUN_WORKFLOW', { tabId, name: opts.workflow }) : await send('START_AGENT', { tabId, goal, ...skill });
     if (!res.success) {
       addAnswer(tabId, { id: newId(), question: goal, error: res.error ?? 'Couldn’t start it' });
       return false;
@@ -175,17 +177,24 @@ export default function App() {
     return true;
   };
 
-  /** /name [words]: a workflow replays, a shortcut fills its blanks, a command runs. */
+  /** A skill's name in the box, waiting for the task to use it on. */
+  const offerSkill = (name: string) => {
+    setValue(`/${name} `);
+    setNotice(`Now say what to do with /${name}, then press Enter.`);
+  };
+
+  /** /name [words]: a workflow replays, a shortcut fills its blanks, a skill guides the task in the words, a command runs. */
   const runSlash = async (text: string) => {
     const [, name = '', args = ''] = /^\/(\S*)\s*([\s\S]*)$/.exec(text) ?? [];
     const find = (items: PickerItem[]) => items.find((i) => i.kind === 'workflow' && i.name === name) ?? items.find((i) => i.name === name);
     const item = find([...pickerItems, ...COMMANDS]) ?? find(await loadPicker());
     if (!item) {
-      if (tabId !== undefined) addAnswer(tabId, { id: newId(), question: text, error: `There’s no workflow, shortcut or command called /${name}. Type / to see them.` });
+      if (tabId !== undefined) addAnswer(tabId, { id: newId(), question: text, error: `There’s no workflow, shortcut, skill or command called /${name}. Type / to see them.` });
       return;
     }
     if (item.kind === 'command') return runCommand(item.name as Command, args || undefined);
     if (item.kind === 'workflow') return startTask(item.detail, { workflow: item.name });
+    if (item.kind === 'skill') return args.trim() ? startTask(args.trim(), { skill: item.name }) : offerSkill(item.name);
     const { text: prompt, complete } = fillPrompt(item.detail, args);
     if (complete) return startTask(prompt);
     // Blanks left: the prompt goes in the box to finish
@@ -214,6 +223,7 @@ export default function App() {
   };
 
   const pick = (item: PickerItem) => {
+    if (item.kind === 'skill') return offerSkill(item.name);
     setValue('');
     if (item.kind === 'command') runCommand(item.name as Command);
     else if (item.kind === 'workflow') startTask(item.detail, { workflow: item.name });
