@@ -96,6 +96,9 @@ jobs:
       - name: Skills from the / menu (listed, picked, in the first prompt, background tab, unknown name)
         run: npm run eval:skills
 
+      - name: Toolbar on selected text (explain, ask, continue in panel, not in fields, per-site and off, never in the agent's view)
+        run: npm run eval:selection
+
       - name: Save as skill, then reuse it (mock)
         run: npm run eval:mock -- --task login --trials 2 --learn --timeout 45
 

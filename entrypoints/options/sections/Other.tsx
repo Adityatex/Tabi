@@ -1,11 +1,12 @@
 // entrypoints/options/sections/Other.tsx
 // Autofill profile, Appearance, Privacy & data, and About.
 import { useEffect, useState } from 'react';
-import { ArrowUpRight, Database, History, Keyboard, Trash2 } from 'lucide-react';
+import { ArrowUpRight, Database, History, Keyboard, Trash2, X } from 'lucide-react';
 import { loadStoredProfile, saveStoredProfile, PROFILE_FIELDS, DEFAULT_PROFILE, type AutofillProfile } from '@/lib/automation/profile';
 import { MAX_RUNS } from '@/lib/agent/timeline';
 import TabiMark from '@/components/TabiMark';
-import { Card, ControlRow, Field, Notice, PageHead, Segmented, TextInput, send } from '../ui';
+import { Card, ControlRow, Field, Notice, PageHead, Segmented, TextInput, ToggleRow, send } from '../ui';
+import { DEFAULT_SELECTION, SELECTION_KEY, cleanSelectionPrefs, loadSelectionPrefs, updateSelectionPrefs, type SelectionPrefs } from '@/lib/utils/selectionPrefs';
 import { THEMES, loadTheme, saveTheme, type Theme } from '@/lib/utils/theme';
 import { shortcutsPage, useOpenShortcut } from '@/components/useOpenShortcut';
 
@@ -67,18 +68,71 @@ export function Appearance() {
 
   return (
     <>
-      <PageHead title="Appearance & keyboard">How the side panel, Settings and History look, and the key that opens Tabi.</PageHead>
+      <PageHead title="Appearance & keyboard">How Tabi looks, the key that opens it, and the toolbar on selected text.</PageHead>
       <Card bare testId="appearance">
         <ControlRow
           title="Theme"
-          note="System follows your computer’s light or dark setting. The change shows everywhere at once. The toolbar icon follows the browser, and the cue on a page follows that page."
+          note="System follows your computer’s light or dark setting. The change shows everywhere at once, the toolbar on selected text included. The toolbar icon follows the browser, and the cue on a page follows that page."
           control={<Segmented<Theme> label="Theme" value={theme} onChange={choose} options={THEMES} />}
         >
           {error && <Notice kind="error">{error}</Notice>}
         </ControlRow>
         <KeyboardShortcut />
       </Card>
+      <SelectionToolbarSetting />
     </>
+  );
+}
+
+/** The toolbar on selected text: on or off, and the sites it stays off. */
+function SelectionToolbarSetting() {
+  const [prefs, setPrefs] = useState<SelectionPrefs | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    loadSelectionPrefs().then(setPrefs).catch(() => setPrefs(DEFAULT_SELECTION));
+    // The toolbar's own menu changes them too
+    const onChange = (changes: Record<string, { newValue?: unknown }>, area: string) => {
+      if (area === 'local' && SELECTION_KEY in changes) setPrefs(cleanSelectionPrefs(changes[SELECTION_KEY].newValue));
+    };
+    browser.storage.onChanged.addListener(onChange);
+    return () => browser.storage.onChanged.removeListener(onChange);
+  }, []);
+  const change = async (c: Parameters<typeof updateSelectionPrefs>[0]) => {
+    setError(null);
+    try {
+      setPrefs(await updateSelectionPrefs(c));
+    } catch (err) {
+      setError((err as Error)?.message || 'Couldn’t save it');
+    }
+  };
+  if (!prefs) return null;
+  return (
+    <Card bare testId="selection-toolbar">
+      <ToggleRow
+        title="Toolbar on selected text"
+        note="Select text on any page to ask about it, explain, translate or summarize it, with the answer beside the text. Nothing is sent to your AI provider until you press one of its buttons. It uses your fast model when you have one."
+        on={prefs.enabled}
+        onChange={(on) => change({ enabled: on })}
+      >
+        {error && <Notice kind="error">{error}</Notice>}
+        {prefs.enabled && prefs.hiddenOn.length > 0 && (
+          <div className="flex flex-col gap-[6px]">
+            <div className="text-[12px] font-medium">Not shown on</div>
+            <ul className="flex flex-wrap gap-[6px]">
+              {prefs.hiddenOn.map((site) => (
+                <li key={site} className="flex items-center gap-1 h-7 pl-[10px] pr-1 rounded-ctl border border-border bg-bg font-mono text-[12px]">
+                  {site}
+                  <button type="button" className="icon-btn w-5 h-5" aria-label={`Show on ${site} again`} title="Show here again" onClick={() => change({ show: site })}><X size={12} /></button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {prefs.enabled && prefs.hiddenOn.length === 0 && (
+          <div className="text-[12px] text-muted">To keep it off a site, use “Don’t show on …” in the toolbar’s ⋯ menu there.</div>
+        )}
+      </ToggleRow>
+    </Card>
   );
 }
 

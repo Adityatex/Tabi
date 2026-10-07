@@ -151,6 +151,22 @@ export default function App() {
     return () => browser.runtime.onMessage.removeListener(listener);
   }, [tabId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // "Continue in panel" from the toolbar on selected text: its question and answer join this tab's answers
+  useEffect(() => {
+    if (tabId === undefined) return;
+    let handled = 0;
+    const take = (pending: { tabId: number; question: string; answer: string; at: number } | undefined) => {
+      if (!pending || pending.at <= handled || Date.now() - pending.at > 30_000) return;
+      handled = pending.at;
+      browser.storage.session.remove('tabi_panel_answer').catch(() => {});
+      if (pending.tabId === tabId) addAnswer(tabId, { id: newId(), question: pending.question, answer: pending.answer, canDo: false });
+    };
+    browser.storage.session.get('tabi_panel_answer').then((s) => take(s.tabi_panel_answer as any)).catch(() => {});
+    const listener = (message: any) => { if (message?.action === 'PANEL_ANSWER') take(message.payload); };
+    browser.runtime.onMessage.addListener(listener);
+    return () => browser.runtime.onMessage.removeListener(listener);
+  }, [tabId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ---- Tasks
   const [notice, setNotice] = useState<string | null>(null);
   /** Run a task: `goal` by the agent, with `skill` in its prompt if the user chose one, or `workflow` replayed. */

@@ -1,7 +1,7 @@
 // entrypoints/background.ts
 // Background service worker — message router, LLM API proxy, storage management
 
-import { summarizePage, explainText, chatWithPage, planAgentStep, listModels, acceptsImages, type TokenUsage } from '@/lib/api/llmClient';
+import { summarizePage, explainText, chatWithPage, askAboutSelection, planAgentStep, listModels, acceptsImages, type SelectionKind, type TokenUsage } from '@/lib/api/llmClient';
 import {
   startRun, stopRun, resumeRun, answerRun, hintRun, forgetRun, getRunView, getRunRecord, listRuns, isRunning, notifyTabLoading,
   type RunnerDeps, type RunOptions, type RunView,
@@ -540,7 +540,17 @@ export default defineBackground(() => {
     // "Review" on the page's cue: the side panel, where the question is. Before
     // any await, while the click still counts as the user's gesture.
     if (action === 'OPEN_PANEL') {
-      if (_sender.tab) chrome.sidePanel?.open({ windowId: _sender.tab.windowId }).catch(() => {});
+      // "Continue in panel" from the toolbar on selected text: the panel shows that question and answer
+      const answer = payload?.answer;
+      if (_sender.tab?.id !== undefined && typeof answer?.question === 'string' && typeof answer?.answer === 'string') {
+        const pending = { tabId: _sender.tab.id, question: answer.question.slice(0, 500), answer: answer.answer.slice(0, 20_000), at: Date.now() };
+        chrome.storage.session.set({ tabi_panel_answer: pending }).catch(() => {});
+        chrome.runtime.sendMessage({ action: 'PANEL_ANSWER', payload: pending }).catch(() => {});
+      }
+      // Some Chrome versions throw at once, rather than reject, when the gesture didn't carry over
+      try {
+        if (_sender.tab) chrome.sidePanel?.open({ windowId: _sender.tab.windowId }).catch(() => {});
+      } catch { /* the toolbar icon still opens it */ }
       sendResponse({ success: true });
       return;
     }
@@ -647,6 +657,22 @@ export default defineBackground(() => {
           case 'EXPLAIN': {
             const { value: explanation } = await ask((c) => explainText(payload.text, c));
             sendResponse({ success: true, data: { result: explanation } });
+            break;
+          }
+
+          case 'SELECTION_ASK': {
+            // The toolbar on selected text (lib/dom/selectionToolbar.ts): a short answer, from the fast model when there is one
+            const kind = payload?.kind as SelectionKind;
+            if (!['ask', 'explain', 'translate', 'summarize'].includes(kind)) throw new Error('Unknown request');
+            const text = String(payload?.text ?? '').trim();
+            if (!text) throw new Error('Select some text first');
+            if (kind === 'ask' && !String(payload?.question ?? '').trim()) throw new Error('Type a question first');
+            const context = {
+              title: String(payload?.title ?? ''), url: String(payload?.url ?? ''), around: String(payload?.around ?? ''),
+              question: payload?.question ? String(payload.question) : undefined, language: payload?.language ? String(payload.language) : undefined,
+            };
+            const { value } = await ask((c) => askAboutSelection(kind, text, context, c), true);
+            sendResponse({ success: true, data: { result: value } });
             break;
           }
 
