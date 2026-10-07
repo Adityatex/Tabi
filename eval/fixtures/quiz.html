@@ -1,0 +1,152 @@
+<!doctype html>
+<html><head><title>General Knowledge Quiz</title>
+<meta charset="utf-8">
+<!-- Built like a Google Form: every control is a div with an ARIA role, named
+     only by its own answer ("Paris", "3") and tied to its question through
+     aria-labelledby on the group or field. Several questions share answers. -->
+<style>
+  body { font-family: sans-serif; background: #f0ebf8; margin: 0; }
+  main { max-width: 640px; margin: 0 auto; padding: 12px; }
+  .card { background: #fff; border-radius: 8px; padding: 20px; margin: 12px 0; min-height: 200px; }
+  [role=heading] { font-size: 16px; margin-bottom: 14px; }
+  [role=radio], [role=checkbox] { display: inline-flex; align-items: center; gap: 8px; margin: 6px 12px 6px 0; cursor: pointer; }
+  [role=radio]::before, [role=checkbox]::before { content: ''; width: 16px; height: 16px; border: 2px solid #5f6368; }
+  [role=radio]::before { border-radius: 50%; }
+  [role=radio][aria-checked=true]::before, [role=checkbox][aria-checked=true]::before { background: #673ab7; border-color: #673ab7; }
+  [role=listbox] { display: inline-block; border: 1px solid #ccc; padding: 6px 10px; cursor: pointer; min-width: 160px; }
+  .options { border: 1px solid #ccc; background: #fff; }
+  .options[hidden] { display: none; }
+  [role=option] { padding: 6px 10px; }
+  .grid-row { display: flex; align-items: center; gap: 16px; }
+  .grid-row span { width: 90px; }
+  input[type=text], textarea { border: 0; border-bottom: 1px solid #ccc; width: 100%; font: inherit; }
+  .time input { width: 48px; }
+</style></head>
+<body><main>
+  <div class="card"><h1>General Knowledge Quiz</h1><p>Answer every question, then submit.</p></div>
+  <div role="list">
+
+    <div role="listitem" class="card">
+      <div role="heading" id="q-name">Your name</div>
+      <input type="text" data-q="name" aria-labelledby="q-name q-name-desc"><span id="q-name-desc"></span>
+    </div>
+
+    <div role="listitem" class="card">
+      <div role="heading" id="q-confidence">How confident are you about your general knowledge? (1 = not at all, 5 = very)</div>
+      <div role="radiogroup" data-q="confidence" aria-labelledby="q-confidence">
+        <div role="radio" aria-label="1" data-value="1" tabindex="0">1</div><div role="radio" aria-label="2" data-value="2" tabindex="0">2</div><div role="radio" aria-label="3" data-value="3" tabindex="0">3</div><div role="radio" aria-label="4" data-value="4" tabindex="0">4</div><div role="radio" aria-label="5" data-value="5" tabindex="0">5</div>
+      </div>
+    </div>
+
+    <div role="listitem" class="card">
+      <div role="heading" id="q-capital">1. What is the capital of Australia?</div>
+      <div role="radiogroup" data-q="capital" aria-labelledby="q-capital">
+        <div role="radio" aria-label="Sydney" data-value="Sydney" tabindex="0"></div>
+        <div role="radio" aria-label="Canberra" data-value="Canberra" tabindex="0"></div>
+        <div role="radio" aria-label="Melbourne" data-value="Melbourne" tabindex="0"></div>
+      </div>
+    </div>
+
+    <div role="listitem" class="card">
+      <div role="heading" id="q-opera">2. Which city is home to the famous Opera House on its harbour?</div>
+      <div role="radiogroup" data-q="opera" aria-labelledby="q-opera">
+        <div role="radio" aria-label="Canberra" data-value="Canberra" tabindex="0"></div>
+        <div role="radio" aria-label="Sydney" data-value="Sydney" tabindex="0"></div>
+        <div role="radio" aria-label="Melbourne" data-value="Melbourne" tabindex="0"></div>
+      </div>
+    </div>
+
+    <div role="listitem" class="card">
+      <div role="heading" id="q-axis">3. Select all countries that were Axis powers in World War II</div>
+      <div role="list" data-q="axis" aria-labelledby="q-axis">
+        <div role="checkbox" aria-label="Germany" data-value="Germany" tabindex="0"></div>
+        <div role="checkbox" aria-label="France" data-value="France" tabindex="0"></div>
+        <div role="checkbox" aria-label="Italy" data-value="Italy" tabindex="0"></div>
+        <div role="checkbox" aria-label="Japan" data-value="Japan" tabindex="0"></div>
+        <div role="checkbox" aria-label="Brazil" data-value="Brazil" tabindex="0"></div>
+      </div>
+    </div>
+
+    <div role="listitem" class="card">
+      <div role="heading" id="q-planet">4. Which is the largest planet in the Solar System?</div>
+      <div role="listbox" data-q="planet" aria-labelledby="q-planet" aria-expanded="false" tabindex="0">
+        <div class="current">Choose</div>
+        <div class="options" hidden>
+          <div role="option" data-value="Mars">Mars</div><div role="option" data-value="Jupiter">Jupiter</div><div role="option" data-value="Venus">Venus</div>
+        </div>
+      </div>
+    </div>
+
+    <div role="listitem" class="card">
+      <div role="heading" id="q-gold">5. What is the chemical symbol for gold?</div>
+      <input type="text" data-q="gold" aria-labelledby="q-gold q-gold-desc"><span id="q-gold-desc"></span>
+    </div>
+
+    <div role="listitem" class="card">
+      <div role="heading" id="q-water">6. In one sentence: why does ice float on water?</div>
+      <textarea data-q="water" aria-labelledby="q-water"></textarea>
+    </div>
+
+    <div role="listitem" class="card">
+      <div role="heading" id="q-fields">7. Match each scientist to their field</div>
+      <div role="group" aria-labelledby="q-fields">
+        <div class="grid-row"><span>Newton</span><div role="radiogroup" data-q="newton" aria-label="Newton">
+          <div role="radio" aria-label="Physics, response for Newton" data-value="Physics" tabindex="0"></div><div role="radio" aria-label="Biology, response for Newton" data-value="Biology" tabindex="0"></div>
+        </div></div>
+        <div class="grid-row"><span>Darwin</span><div role="radiogroup" data-q="darwin" aria-label="Darwin">
+          <div role="radio" aria-label="Physics, response for Darwin" data-value="Physics" tabindex="0"></div><div role="radio" aria-label="Biology, response for Darwin" data-value="Biology" tabindex="0"></div>
+        </div></div>
+      </div>
+    </div>
+
+    <div role="listitem" class="card">
+      <div role="heading" id="q-ve">8. On what date did World War II end in Europe (V-E Day)?</div>
+      <div id="q-ve-date">Date</div>
+      <input type="date" data-q="veday" aria-labelledby="q-ve-date">
+    </div>
+
+    <div role="listitem" class="card">
+      <div role="heading" id="q-noon">9. What time is noon on a 24-hour clock?</div>
+      <div class="time" data-q="noon">
+        <input type="text" aria-label="Hours" data-part="h" maxlength="2"> : <input type="text" aria-label="Minutes" data-part="m" maxlength="2">
+      </div>
+    </div>
+
+  </div>
+  <div class="card"><div role="button" id="submit" tabindex="0" style="display:inline-block;background:#673ab7;color:#fff;padding:8px 20px;border-radius:4px;cursor:pointer">Submit</div></div>
+</main>
+<script>
+  // Radios: one per group; checkboxes: toggle
+  document.querySelectorAll('[role=radio]').forEach((r) => r.addEventListener('click', () => {
+    r.parentElement.querySelectorAll('[role=radio]').forEach((o) => o.setAttribute('aria-checked', String(o === r)));
+  }));
+  document.querySelectorAll('[role=radio],[role=checkbox]').forEach((el) => el.setAttribute('aria-checked', 'false'));
+  document.querySelectorAll('[role=checkbox]').forEach((c) => c.addEventListener('click', () => {
+    c.setAttribute('aria-checked', String(c.getAttribute('aria-checked') !== 'true'));
+  }));
+  // The dropdown: a listbox that opens a list of options
+  const box = document.querySelector('[role=listbox]'), menu = box.querySelector('.options');
+  box.addEventListener('click', (e) => {
+    const opt = e.target.closest('[role=option]');
+    if (opt) {
+      menu.querySelectorAll('[role=option]').forEach((o) => o.setAttribute('aria-selected', String(o === opt)));
+      box.querySelector('.current').textContent = opt.textContent;
+      box.dataset.value = opt.dataset.value;
+    }
+    menu.hidden = !menu.hidden || !!opt;
+    box.setAttribute('aria-expanded', String(!menu.hidden));
+  });
+  const checked = (q) => [...document.querySelectorAll(`[data-q="${q}"] [aria-checked=true]`)].map((e) => e.dataset.value);
+  const val = (q) => document.querySelector(`[data-q="${q}"]`).value;
+  document.getElementById('submit').addEventListener('click', async () => {
+    const answers = {
+      name: val('name'), confidence: checked('confidence')[0], capital: checked('capital')[0], opera: checked('opera')[0],
+      axis: checked('axis').sort(), planet: box.dataset.value, gold: val('gold'), water: val('water'),
+      newton: checked('newton')[0], darwin: checked('darwin')[0], veday: val('veday'),
+      noon: `${document.querySelector('[data-part=h]').value}:${document.querySelector('[data-part=m]').value}`,
+    };
+    await fetch('/api/quiz', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(answers) });
+    document.querySelector('main').innerHTML = '<div class="card"><h1>General Knowledge Quiz</h1><p role="status">Your response has been recorded.</p></div>';
+  });
+</script>
+</body></html>

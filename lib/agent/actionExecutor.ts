@@ -1,7 +1,7 @@
 // lib/agent/actionExecutor.ts
 // Executes structured actions on the DOM returned by the LLM agent
 
-import { getElementById, getRemoteRef, findElements, formatElement, pageText, shadowRootOf, type RemoteRef } from '@/lib/agent/domSnapshot';
+import { getElementById, getRemoteRef, findElements, formatWithGroup, pageText, shadowRootOf, type RemoteRef } from '@/lib/agent/domSnapshot';
 import { keyParams, normalizeKey } from '@/lib/agent/keys';
 import { extract, formatExtraction } from '@/lib/agent/extract';
 
@@ -355,9 +355,37 @@ async function selectCustom(trigger: HTMLElement, elementId: number, wanted: str
  * matters: reporting "✅ Typed" when nothing changed made the agent claim tasks
  * were done when they weren't.
  */
+/** Date and time inputs: the format their value takes, whatever the page shows. */
+const DATE_FORMATS: Record<string, [RegExp, string]> = {
+  date: [/^\d{4}-\d{2}-\d{2}$/, 'YYYY-MM-DD, e.g. 2026-10-07'],
+  time: [/^\d{2}:\d{2}(:\d{2})?$/, 'HH:MM in 24 hours, e.g. 14:30'],
+  'datetime-local': [/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/, 'YYYY-MM-DDTHH:MM, e.g. 2026-10-07T14:30'],
+  month: [/^\d{4}-\d{2}$/, 'YYYY-MM, e.g. 2026-10'],
+  week: [/^\d{4}-W\d{2}$/, 'YYYY-Www, e.g. 2026-W41'],
+};
+
+/**
+ * A date or time input takes its value in one fixed format, but typing into it
+ * goes through the browser's locale (dd/mm/yyyy or mm/dd/yyyy, AM/PM): set the
+ * value instead, and say which format when it's wrong.
+ */
+async function typeDate(el: HTMLInputElement, elementId: number, text: string): Promise<string> {
+  const [pattern, format] = DATE_FORMATS[el.type];
+  const value = text.trim();
+  if (!pattern.test(value)) return `❌ Element [${elementId}] is a ${el.type} field: type the value as ${format}.`;
+  el.scrollIntoView({ behavior: 'instant', block: 'center' });
+  el.focus();
+  setFieldValue(el, value);
+  el.blur();
+  return el.value
+    ? `✅ Set ${el.type} field [${elementId}] to ${el.value}`
+    : `❌ The ${el.type} field [${elementId}] didn't accept "${value}" (it may be outside the allowed range).`;
+}
+
 async function typeText(elementId: number, text: string, clear: boolean): Promise<string> {
   const el = getElementById(elementId);
   if (!el) return `❌ Element [${elementId}] not found.`;
+  if (el.tagName === 'INPUT' && (el as HTMLInputElement).type in DATE_FORMATS) return typeDate(el as HTMLInputElement, elementId, text);
   const shown = `"${text.substring(0, 40)}"`;
   const verb = clear ? 'Cleared and typed' : 'Typed';
   const field = isTextField(el);
@@ -563,7 +591,7 @@ export async function executeAction(action: AgentAction): Promise<string> {
       if (!query) return '❌ find needs text to search for.';
       const matches = findElements(query);
       if (matches.length === 0) return `🔎 No elements matching "${query}". Try other words, or scroll to load more of the page.`;
-      return `🔎 Found ${matches.length} element(s) matching "${query}": ${matches.map(formatElement).join(' | ')}`;
+      return `🔎 Found ${matches.length} element(s) matching "${query}": ${matches.map(formatWithGroup).join(' | ')}`;
     }
 
     case 'extract': {

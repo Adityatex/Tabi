@@ -286,10 +286,41 @@ function isButtonInput(el: Element): boolean {
   return el.tagName === 'INPUT' && /^(submit|button|reset)$/i.test(el.getAttribute('type') ?? '');
 }
 
+/** Text of the elements an ARIA id-list attribute points to, in the element's own document or shadow root. */
+function referencedText(el: Element, attr: string): string {
+  const ids = el.getAttribute(attr)?.split(/\s+/).filter(Boolean);
+  if (!ids?.length) return '';
+  const root = el.getRootNode() as Document | ShadowRoot;
+  return ids
+    .map((id) => (root.getElementById?.(id) ?? el.ownerDocument.getElementById(id)) as HTMLElement | null)
+    // innerText of a hidden element falls back to its textContent
+    .map((ref) => (ref && ref !== el ? ref.innerText ?? ref.textContent ?? '' : ''))
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** The text of the <label>s for a form control: <label for="id"> or one wrapped around it. */
+function labelText(el: Element): string {
+  const labels = (el as HTMLInputElement).labels;
+  if (!labels?.length) return '';
+  return Array.from(labels).map((l) => l.innerText ?? '').join(' ').replace(/\s+/g, ' ').trim();
+}
+
+/** How long a label may be: a field named by its question needs the whole question. */
+const LABEL_CHARS = 60;
+const NAMED_BY_CHARS = 100;
+
 function getLabel(el: Element): string {
-  // Try multiple strategies to get a human-readable label
+  // Like a screen reader: what the page says names it, then what it shows
+  const labelledBy = referencedText(el, 'aria-labelledby');
+  if (labelledBy) return truncate(labelledBy, NAMED_BY_CHARS);
+
   const ariaLabel = el.getAttribute('aria-label');
-  if (ariaLabel) return truncate(ariaLabel, 60);
+  if (ariaLabel) return truncate(ariaLabel, LABEL_CHARS);
+
+  const label = labelText(el);
+  if (label) return truncate(label, NAMED_BY_CHARS);
 
   const title = el.getAttribute('title');
   if (title) return truncate(title, 60);
@@ -314,11 +345,70 @@ function getLabel(el: Element): string {
   return '';
 }
 
+const GROUP_CHARS = 140;
+/** Containers that name the controls inside them: radio groups, checkbox lists, fieldsets. */
+const NAMED_GROUP_ROLES = new Set(['radiogroup', 'group', 'list', 'listbox', 'tablist', 'menu', 'menubar', 'toolbar', 'dialog']);
+/** Containers whose heading names what's inside: a form question, a product card. */
+const HEADED_CONTAINER = 'fieldset, li, article, [role="listitem"], [role="article"]';
+const HEADING = 'legend, [role="heading"], h1, h2, h3, h4, h5, h6';
+
+interface ContainerInfo {
+  /** Its ARIA name or legend. */
+  named: string;
+  /** The heading inside it, if it's a container that headings name. */
+  heading: Element | null;
+}
+/** Per container, for one snapshot: many controls share a container. */
+let containers = new WeakMap<Element, ContainerInfo>();
+
+function containerInfo(node: Element): ContainerInfo {
+  let info = containers.get(node);
+  if (!info) {
+    const role = node.getAttribute('role') ?? '';
+    const named = NAMED_GROUP_ROLES.has(role) || node.tagName === 'FIELDSET'
+      ? referencedText(node, 'aria-labelledby') || node.getAttribute('aria-label') || ''
+      : '';
+    info = { named: named.trim(), heading: node.matches(HEADED_CONTAINER) ? node.querySelector(HEADING) : null };
+    containers.set(node, info);
+  }
+  return info;
+}
+
+/** What a container calls itself for this control: its ARIA name, or the heading that comes before the control. */
+function containerName(node: Element, el: Element): string {
+  const { named, heading } = containerInfo(node);
+  if (named) return named;
+  // The heading must come before the control, not be (or hold) it
+  if (heading && !heading.contains(el) && heading.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING) {
+    return (heading as HTMLElement).innerText ?? heading.textContent ?? '';
+  }
+  return '';
+}
+
+/**
+ * The question or section a control belongs to, e.g. a radio button's
+ * question: "3. What is the capital of France? › Paris" is clear where a list
+ * of "Paris" buttons isn't. The nearest named container, and the one around it
+ * when there is one (a grid question and its row), outermost first.
+ */
+function groupOf(el: Element, label: string): string | undefined {
+  const names: string[] = [];
+  let node = el.parentElement;
+  for (let depth = 0; node && depth < 10 && names.length < 2 && node !== el.ownerDocument.body; depth++, node = node.parentElement) {
+    const name = containerName(node, el).replace(/\s+/g, ' ').trim();
+    // Skip names that only repeat the control's own (a field named by its question)
+    if (name && name.length < 300 && !names.includes(name) && !(label && name.startsWith(label.replace(/…$/, '')))) names.unshift(name);
+  }
+  return names.length ? truncate(names.join(' › '), GROUP_CHARS) : undefined;
+}
+
 export interface SnapshotElement {
   id: number;
   tag: string;
   role: string;
   label: string;
+  /** The question or section it belongs to, from the containers around it. */
+  group?: string;
   type?: string;
   href?: string;
   value?: string;
@@ -369,12 +459,14 @@ function describe(el: Element, id: number, frame: string | undefined): SnapshotE
   const value = isButtonInput(el) ? undefined // its text, already the label
     : ((el as HTMLElement).isContentEditable ? (el as HTMLElement).innerText : input.value) || undefined;
   const href = tag === 'a' ? (el as HTMLAnchorElement).href : undefined;
+  const label = getLabel(el);
 
   return {
     id,
     tag,
     role: el.getAttribute('role') || tag,
-    label: getLabel(el),
+    label,
+    group: groupOf(el, label),
     type: el.getAttribute('type') || undefined,
     href: href ? truncate(href, 100) : undefined,
     value: value ? truncate(value, 50) : undefined,
@@ -403,6 +495,12 @@ export function formatElement(el: SnapshotElement): string {
   if (el.frame) entry += ` (in frame "${el.frame}")`;
   return entry;
 }
+
+/** The line that heads a group's elements in a snapshot. */
+export const groupHeading = (group: string) => `── ${group} ──`;
+
+/** An element with the question or section it belongs to, for a line on its own (find results). */
+export const formatWithGroup = (el: SnapshotElement) => (el.group ? `${formatElement(el)} (under "${el.group}")` : formatElement(el));
 
 // ---------------------------------------------------------------- snapshot
 
@@ -438,7 +536,7 @@ export function findElements(query: string, limit = 10): SnapshotElement[] {
   if (words.length === 0) return [];
   return lastElements
     .filter(el => {
-      const haystack = formatElement(el).toLowerCase();
+      const haystack = formatWithGroup(el).toLowerCase();
       return words.every(w => haystack.includes(w));
     })
     .slice(0, limit);
@@ -541,6 +639,7 @@ export function collectLocalElements(): SnapshotParts {
   for (const entry of registry.values()) if (isElement(entry)) entry.removeAttribute('data-tabi-id');
   registry.clear();
   remoteBoxes.clear();
+  containers = new WeakMap();
 
   const found: Found[] = [];
   const opaqueFrames: OpaqueFrame[] = [];
@@ -615,19 +714,30 @@ export function renderSnapshot(parts: SnapshotParts): { text: string; elements: 
   lines.push(`--- INTERACTIVE ELEMENTS (${elements.length}) ---`);
 
   // List as many elements as fit, nearest the viewport first, then show them
-  // in page order. Whatever is left out stays reachable through `find`.
+  // in page order, under a line naming their question or section when they
+  // have one. Whatever is left out stays reachable through `find`.
+  if (elements.some((el) => el.group)) lines.push(`Elements under a ${groupHeading('…')} line belong to that question or section.`);
   const header = lines.join('\n').length;
   let room = SNAPSHOT_BUDGET - header - MIN_TEXT_BUDGET;
   const formatted = elements.map(formatElement);
   const listed = new Set<number>();
+  const headed = new Set<string>();
   const byDistance = elements.map(e => e.id).sort((a, b) => distance.get(a)! - distance.get(b)! || a - b);
   for (const id of byDistance) {
-    const cost = formatted[id].length + 1;
+    const group = elements[id].group;
+    const cost = formatted[id].length + 1 + (group && !headed.has(group) ? groupHeading(group).length + 1 : 0);
     if (cost > room) break;
     room -= cost;
     listed.add(id);
+    if (group) headed.add(group);
   }
-  for (const el of elements) if (listed.has(el.id)) lines.push(formatted[el.id]);
+  let current: string | undefined;
+  for (const el of elements) {
+    if (!listed.has(el.id)) continue;
+    if (el.group && el.group !== current) lines.push(groupHeading(el.group));
+    current = el.group;
+    lines.push(formatted[el.id]);
+  }
   const omitted = elements.length - listed.size;
   if (omitted > 0) {
     lines.push(`… ${omitted} more elements are off-screen and not listed. Use {"action": "find", "text": "<words>"} to search all elements, or scroll.`);

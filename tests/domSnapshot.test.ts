@@ -168,3 +168,77 @@ describe('page text from shadow roots', () => {
     expect(pageText(2000)).not.toContain('Agent Progress');
   });
 });
+
+describe('labels and groups, the way a screen reader names things', () => {
+  it('names a field by aria-labelledby, then aria-label, then its <label>', () => {
+    document.body.innerHTML = `
+      <div id="q1">Participant name</div><input id="a" aria-labelledby="q1 missing">
+      <input aria-label="Search">
+      <label for="email">Email address</label><input id="email" placeholder="you@example.com">
+      <label><input type="checkbox"> I agree to the terms</label>`;
+
+    const { elements } = createDOMSnapshot();
+
+    expect(elements.map((e) => e.label)).toEqual(['Participant name', 'Search', 'Email address', 'I agree to the terms']);
+  });
+
+  it('heads each question’s options with the question, so "Paris" in two questions is not ambiguous', () => {
+    document.body.innerHTML = `
+      <div role="list">
+        <div role="listitem">
+          <div role="heading" id="h1">1. Capital of France?</div>
+          <div role="radiogroup" aria-labelledby="h1">
+            <div role="radio" aria-label="Paris" tabindex="0"></div><div role="radio" aria-label="Lyon" tabindex="0"></div>
+          </div>
+        </div>
+        <div role="listitem">
+          <div role="heading" id="h2">2. Where is the Louvre?</div>
+          <div role="radiogroup" aria-labelledby="h2">
+            <div role="radio" aria-label="Paris" tabindex="0"></div>
+          </div>
+        </div>
+      </div>`;
+
+    const { text, elements } = createDOMSnapshot();
+
+    expect(elements.map((e) => e.group)).toEqual(['1. Capital of France?', '1. Capital of France?', '2. Where is the Louvre?']);
+    const lines = text.split('\n');
+    const first = lines.indexOf('── 1. Capital of France? ──');
+    const second = lines.indexOf('── 2. Where is the Louvre? ──');
+    expect(first).toBeGreaterThan(-1);
+    expect(lines[first + 1]).toMatch(/"Paris"/);
+    expect(lines[first + 2]).toMatch(/"Lyon"/);
+    expect(lines[second + 1]).toMatch(/"Paris"/);
+  });
+
+  it('gives a grid row both its question and its row', () => {
+    document.body.innerHTML = `
+      <div role="listitem"><div role="heading">13. Rate each era</div>
+        <div role="radiogroup" aria-label="The Renaissance"><div role="radio" aria-label="High" tabindex="0"></div></div>
+      </div>`;
+
+    expect(createDOMSnapshot().elements[0].group).toBe('13. Rate each era › The Renaissance');
+  });
+
+  it('doesn’t repeat a field’s question as its group', () => {
+    document.body.innerHTML = `
+      <div role="listitem"><div role="heading" id="q">Your name</div><input aria-labelledby="q"></div>`;
+
+    const { text, elements } = createDOMSnapshot();
+
+    expect(elements[0].label).toBe('Your name');
+    expect(elements[0].group).toBeUndefined();
+    expect(text).not.toContain('──');
+  });
+
+  it('names a product card’s button by the card’s heading, and find searches it', () => {
+    document.body.innerHTML = `
+      <ul><li><h3>Kite 14</h3><button>Add to cart</button></li><li><h3>Kite 9</h3><button>Add to cart</button></li></ul>
+      <nav><ul><li><a href="/home">Home</a></li></ul></nav>`;
+
+    const { elements } = createDOMSnapshot();
+
+    expect(elements.map((e) => e.group)).toEqual(['Kite 14', 'Kite 9', undefined]);
+    expect(findElements('add to cart kite 9').map((e) => e.id)).toEqual([1]);
+  });
+});

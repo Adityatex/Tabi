@@ -211,3 +211,25 @@ describe('note', () => {
     expect(await executeAction({ action: 'note', text: '  ' })).toMatch(/^❌ note needs text/);
   });
 });
+
+describe('date and time fields', () => {
+  it('sets a date in the field’s own format, whatever the locale would show', async () => {
+    document.body.innerHTML = '<input type="date" data-tabi-id="0">';
+    const result = await executeAction({ action: 'type', elementId: 0, text: '2026-10-07' });
+    expect(document.querySelector<HTMLInputElement>('input')!.value).toBe('2026-10-07');
+    expect(result).toContain('✅');
+  });
+
+  it('says which format to use when the date is written another way', async () => {
+    document.body.innerHTML = '<input type="date" data-tabi-id="0">';
+    const result = await executeAction({ action: 'type', elementId: 0, text: '07/10/2026' });
+    expect(result).toBe('❌ Element [0] is a date field: type the value as YYYY-MM-DD, e.g. 2026-10-07.');
+    expect(document.querySelector<HTMLInputElement>('input')!.value).toBe('');
+  });
+
+  it('sets a time in 24 hours', async () => {
+    document.body.innerHTML = '<input type="time" data-tabi-id="0">';
+    await executeAction({ action: 'clear_and_type', elementId: 0, text: '14:30' });
+    expect(document.querySelector<HTMLInputElement>('input')!.value).toBe('14:30');
+  });
+});

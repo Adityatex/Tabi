@@ -292,12 +292,18 @@ const MAX_NEW_TEXT = 5;
 const MAX_NEW_ELEMENTS = 8;
 const MAX_GONE_ELEMENTS = 5;
 
-/** Element lines of a snapshot, keyed by description: IDs are renumbered every snapshot, and typed values are in the history. */
+/**
+ * Element lines of a snapshot, keyed by description and the group heading
+ * they're under ("Paris" in two questions is two elements): IDs are renumbered
+ * every snapshot, and typed values are in the history.
+ */
 function elementLines(snapshot: string): Map<string, string> {
   const lines = new Map<string, string>();
+  let group = '';
   for (const line of snapshot.split('\n')) {
+    if (line.startsWith('── ')) group = line;
     if (!/^\[\d+\] </.test(line)) continue;
-    lines.set(line.replace(/^\[\d+\] /, '').replace(/ value="[^"]*"/, ''), line);
+    lines.set(`${group}${line.replace(/^\[\d+\] /, '').replace(/ value="[^"]*"/, '')}`, line);
   }
   return lines;
 }
