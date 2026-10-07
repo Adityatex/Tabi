@@ -59,13 +59,29 @@ export default function Composer(props: Props) {
       onRefreshPicker();
     }
   }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
-  // Grows with its text, up to a few lines
-  useLayoutEffect(() => {
+  // Grows with its text, up to a few lines. Empty, it keeps its CSS height:
+  // Chrome counts the placeholder in scrollHeight, and while the panel is
+  // still opening it's narrow enough to wrap the placeholder many times.
+  const fit = () => {
     const el = box.current;
     if (!el) return;
     el.style.height = 'auto';
-    el.style.height = `${Math.min(el.scrollHeight, 140)}px`;
-  }, [value]);
+    if (el.value) el.style.height = `${Math.min(el.scrollHeight, 140)}px`;
+  };
+  useLayoutEffect(fit, [value]);
+  // The panel changes width as it opens and when it's resized: wrap the text again
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    let width = el.clientWidth;
+    const watch = new ResizeObserver(() => {
+      if (el.clientWidth === width) return;
+      width = el.clientWidth;
+      fit();
+    });
+    watch.observe(el);
+    return () => watch.disconnect();
+  }, []);
   // Ctrl+G opens the panel; focus lands in the box
   useEffect(() => { box.current?.focus(); }, []);
 
