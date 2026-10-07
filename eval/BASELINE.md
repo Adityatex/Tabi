@@ -10,7 +10,7 @@ The new `quiz-form` task copies that structure on one page: repeated answers acr
 
 | `quiz-form` | Mock | Live, Groq `qwen/qwen3.8-27b` |
 |---|---|---|
-| Before | 0/1 (the right "Sydney" can't be told apart) | not run |
+| Before | 0/1: the name box has no label, so the first step finds nothing | not run |
 | After | 1/1 | 3/3 (4 to 6 calls, 40 to 94s with free-tier rate limits) |
 
 The full mock suite stays at 31/31. Mock plans that targeted a field by its `name` attribute (`"username"`) now use its label (`"Username"`), since a real `<label>` wins.
