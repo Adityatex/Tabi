@@ -27,10 +27,12 @@ export default defineConfig({
         '128': 'icons/toolbar-light-128.png',
       },
     },
-    // No popup: the toolbar icon opens the side panel (entrypoints/sidepanel), as do Ctrl+G and the right-click menu
+    // No popup: the toolbar icon opens the side panel (entrypoints/sidepanel), as do Alt+T and the right-click menu.
+    // Alt+T, not Ctrl+G: the browser's own shortcuts win, and Ctrl+G is Find next. The key is only a
+    // suggestion applied at install; people change it on the browser's shortcuts page (Settings links there).
     permissions: ['activeTab', 'scripting', 'storage', 'debugger', 'alarms', 'notifications', 'tabGroups', 'sidePanel', 'contextMenus'],
     commands: {
-      _execute_action: { suggested_key: { default: 'Ctrl+G' }, description: 'Open Tabi' },
+      _execute_action: { suggested_key: { default: 'Alt+T' }, description: 'Open Tabi' },
     },
     // <all_urls> covers every LLM provider, including a local Ollama
     host_permissions: ['<all_urls>'],

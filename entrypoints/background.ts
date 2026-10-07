@@ -93,7 +93,7 @@ export default defineBackground(() => {
   }).catch(() => {});
 
   // ---- The side panel (entrypoints/sidepanel) is Tabi's main surface: the toolbar icon opens it, and so
-  // does its shortcut (Ctrl+G, the manifest's _execute_action). There is no popup.
+  // does its shortcut (Alt+T unless the user changed it; the manifest's _execute_action). There is no popup.
   chrome.sidePanel?.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
   // Right-click: open Tabi, or run a page command in it
   browser.runtime.onInstalled.addListener(() => {

@@ -22,7 +22,7 @@ const NAV: [string, [SectionId, string, LucideIcon][]][] = [
   ['Safety', [['safety', 'Safety & sites', Shield]]],
   ['Your routines', [['skills', 'Skills', BookOpen], ['workflows', 'Workflows', Repeat], ['shortcuts', 'Shortcuts', Zap], ['schedules', 'Schedules', CalendarClock]]],
   ['Connections', [['mcp', 'AI apps (MCP)', Plug], ['autofill', 'Autofill profile', IdCard]]],
-  ['Other', [['appearance', 'Appearance', Palette], ['privacy', 'Privacy & data', Database], ['about', 'About', Info]]],
+  ['Other', [['appearance', 'Appearance & keyboard', Palette], ['privacy', 'Privacy & data', Database], ['about', 'About', Info]]],
 ];
 const IDS = NAV.flatMap(([, items]) => items.map(([id]) => id));
 const LABEL = Object.fromEntries(NAV.flatMap(([, items]) => items.map(([id, label]) => [id, label]))) as Record<SectionId, string>;

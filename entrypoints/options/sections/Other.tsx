@@ -7,6 +7,7 @@ import { MAX_RUNS } from '@/lib/agent/timeline';
 import TabiMark from '@/components/TabiMark';
 import { Card, ControlRow, Field, Notice, PageHead, Segmented, TextInput, send } from '../ui';
 import { THEMES, loadTheme, saveTheme, type Theme } from '@/lib/utils/theme';
+import { shortcutsPage, useOpenShortcut } from '@/components/useOpenShortcut';
 
 export function Autofill() {
   const [profile, setProfile] = useState<AutofillProfile>({ ...DEFAULT_PROFILE });
@@ -66,7 +67,7 @@ export function Appearance() {
 
   return (
     <>
-      <PageHead title="Appearance">How the side panel, Settings and History look.</PageHead>
+      <PageHead title="Appearance & keyboard">How the side panel, Settings and History look, and the key that opens Tabi.</PageHead>
       <Card bare testId="appearance">
         <ControlRow
           title="Theme"
@@ -75,8 +76,33 @@ export function Appearance() {
         >
           {error && <Notice kind="error">{error}</Notice>}
         </ControlRow>
+        <KeyboardShortcut />
       </Card>
     </>
+  );
+}
+
+/** The key that opens Tabi, as the browser has it, and the way to change it (only the browser can). */
+function KeyboardShortcut() {
+  const shortcut = useOpenShortcut();
+  const page = shortcutsPage();
+  return (
+    <ControlRow
+      title="Open Tabi"
+      note="Opens the side panel from any page. Only the browser can change it: Change opens its shortcuts page, where you set Tabi’s “Open Tabi”. Pick a key the browser doesn’t use, since its own shortcuts win (Ctrl+G is its Find next)."
+      control={(
+        <div className="flex items-center gap-2">
+          {shortcut === undefined ? null : shortcut
+            ? <kbd className="font-mono text-[12.5px] border border-border-strong rounded-[4px] px-[7px] py-[2px] bg-bg" data-testid="open-shortcut">{shortcut}</kbd>
+            : <span className="text-[12.5px] text-muted" data-testid="open-shortcut">Not set</span>}
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => browser.tabs.create({ url: page })}>
+            <Keyboard size={13} aria-hidden />{shortcut ? 'Change' : 'Set a shortcut'}
+          </button>
+        </div>
+      )}
+    >
+      {shortcut === '' && <Notice kind="info">No key opens Tabi right now: the browser may have kept the one Tabi suggested for itself. The toolbar icon and the right-click menu still open it.</Notice>}
+    </ControlRow>
   );
 }
 
@@ -156,13 +182,6 @@ export function About() {
           {link('https://github.com/Adityatex/Tabi', 'Source on GitHub')}
           {link('https://github.com/Adityatex/Tabi#readme', 'Docs')}
           {link('https://github.com/Adityatex/Tabi/issues', 'Report a problem')}
-        </div>
-      </Card>
-      <Card title="Keyboard" bare>
-        <div className="px-5 py-4 flex items-center gap-3 flex-wrap">
-          <Keyboard size={14} className="text-muted" aria-hidden />
-          <span className="flex-1">Open Tabi: <span className="font-mono text-[12px] border border-border rounded-[4px] px-[5px] py-px">Ctrl+G</span></span>
-          <button type="button" className="btn btn-secondary btn-sm" onClick={() => browser.tabs.create({ url: 'chrome://extensions/shortcuts' })}>Change shortcut</button>
         </div>
       </Card>
     </>

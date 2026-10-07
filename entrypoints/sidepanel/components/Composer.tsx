@@ -5,6 +5,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AppWindow, ArrowUp, Check, ChevronDown, FileText, FormInput, MessageCircle, Repeat, TextSelect, Zap, type LucideIcon } from 'lucide-react';
 import { blanks, matchItems, type PickerItem } from '@/lib/shortcuts/shortcut';
+import { useOpenShortcut } from '@/components/useOpenShortcut';
 
 export type Mode = 'auto' | 'answer' | 'do';
 
@@ -45,6 +46,7 @@ export default function Composer(props: Props) {
   const [menu, setMenu] = useState(false);
   const [highlight, setHighlight] = useState(0);
   const [dismissed, setDismissed] = useState(false);
+  const openKey = useOpenShortcut();
 
   // The picker shows while a /name is being typed ("/pri"), not once words follow it
   const typingName = /^\/\S*$/.test(value);
@@ -82,7 +84,7 @@ export default function Composer(props: Props) {
     watch.observe(el);
     return () => watch.disconnect();
   }, []);
-  // Ctrl+G opens the panel; focus lands in the box
+  // The shortcut (or the toolbar icon) opens the panel; focus lands in the box
   useEffect(() => { box.current?.focus(); }, []);
 
   const complete = (item: PickerItem) => {
@@ -249,7 +251,7 @@ export default function Composer(props: Props) {
       </div>
       <div className="flex justify-between gap-2 text-[11px] text-muted mt-[6px] px-[2px]">
         <span className="whitespace-nowrap overflow-hidden text-ellipsis">Enter to send · Shift+Enter for a new line</span>
-        <span className="font-mono flex-none">Ctrl+G</span>
+        {openKey && <span className="font-mono flex-none" title="Opens Tabi from any page. Change it in Settings, Appearance & keyboard">{openKey}</span>}
       </div>
     </footer>
   );

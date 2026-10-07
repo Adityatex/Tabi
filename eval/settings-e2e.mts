@@ -107,6 +107,14 @@ async function main(): Promise<void> {
     const open = context.pages().filter((p) => p.url().includes('/options.html')).length;
     check('the panel opens Settings at a section, reusing its tab', settings.url().endsWith('#agent') && open === 1
       && await settings.getByRole('heading', { name: 'Agent' }).isVisible(), settings.url());
+
+    // 6. The key that opens Tabi, as the browser assigned it, in Settings and the panel
+    const assigned = await worker.evaluate(() => chrome.commands.getAll().then((c: any[]) => c.find((x) => x.name === '_execute_action')?.shortcut ?? ''));
+    await settings.getByRole('link', { name: 'Appearance & keyboard' }).click();
+    const shown = await settings.getByTestId('open-shortcut').innerText({ timeout: 5_000 }).catch(() => '');
+    const footer = await panel.locator('footer').innerText();
+    check('the open-Tabi shortcut is Alt+T, and Settings and the panel show it',
+      assigned === 'Alt+T' && shown === 'Alt+T' && footer.includes('Alt+T') && !footer.includes('Ctrl+G'), `browser: "${assigned}", Settings: "${shown}"`);
   } finally {
     await context.close().catch(() => {});
     await fixtures.close();

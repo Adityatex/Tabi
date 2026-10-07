@@ -97,7 +97,7 @@ The suite has 10 standard tasks (forms, dropdowns, radios, multi-page flows, slo
 3. Enable **Developer mode** (top right toggle)
 4. Click **Load unpacked**
 5. Select the `.output/chrome-mv3` folder
-6. Click the Tabi icon in the toolbar (or press **Ctrl+G**) to open the side panel
+6. Click the Tabi icon in the toolbar (or press **Alt+T**) to open the side panel. To use another key, go to Settings → Appearance & keyboard
 
 ## 📁 Project Structure
 
