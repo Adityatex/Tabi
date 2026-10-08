@@ -1,7 +1,7 @@
 // entrypoints/background.ts
 // Background service worker — message router, LLM API proxy, storage management
 
-import { summarizePage, explainText, chatWithPage, askAboutSelection, planAgentStep, listModels, acceptsImages, type SelectionKind, type TokenUsage } from '@/lib/api/llmClient';
+import { summarizePage, explainText, chatWithPage, callLLM, selectionMessages, WRITING_ACTIONS, planAgentStep, listModels, acceptsImages, type SelectionAction, type SelectionRequest, type TokenUsage } from '@/lib/api/llmClient';
 import {
   startRun, stopRun, resumeRun, answerRun, hintRun, forgetRun, getRunView, getRunRecord, listRuns, isRunning, notifyTabLoading,
   type RunnerDeps, type RunOptions, type RunView,
@@ -103,6 +103,12 @@ export default defineBackground(() => {
       chrome.contextMenus.create({ id: 'tabi-explain', title: 'Explain “%s” with Tabi', contexts: ['selection'] });
     });
   });
+  // Alt+J (the manifest's ask-selection command): ask about the selection on the page, or the page itself
+  chrome.commands?.onCommand.addListener((command: string, tab?: { id?: number }) => {
+    if (command !== 'ask-selection' || tab?.id === undefined) return;
+    chrome.tabs.sendMessage(tab.id, { action: 'SELECTION_SHORTCUT' }).catch(() => {});
+  });
+
   chrome.contextMenus?.onClicked.addListener((info: { menuItemId: string; selectionText?: string }, tab?: { id?: number; windowId: number }) => {
     if (tab?.id === undefined) return;
     // open() only works in the click's user gesture, so before anything is awaited
@@ -543,6 +549,40 @@ export default defineBackground(() => {
     return typeof id === 'string' && (PROVIDER_IDS as string[]).includes(id);
   }
 
+  // ---- The toolbar on selected text (lib/dom/selectionToolbar.ts): one answer
+  // per connection, streamed as it's written, from the fast model when there is
+  // one. Closing the window disconnects, which stops the request.
+  const SELECTION_ACTIONS: readonly SelectionAction[] = ['ask', 'explain', 'translate', 'summarize', ...WRITING_ACTIONS];
+  browser.runtime.onConnect.addListener((port) => {
+    if (port.name !== 'tabi-selection' || !port.sender?.tab) return;
+    const abort = new AbortController();
+    port.onDisconnect.addListener(() => abort.abort());
+    const post = (message: unknown) => { try { port.postMessage(message); } catch { /* closed */ } };
+    port.onMessage.addListener(async (message: any) => {
+      if (message?.type !== 'start') return;
+      const r = message.request ?? {};
+      try {
+        if (!SELECTION_ACTIONS.includes(r.action)) throw new Error('Unknown request');
+        const turns = Array.isArray(r.turns)
+          ? r.turns.filter((t: any) => (t?.role === 'user' || t?.role === 'assistant') && typeof t.content === 'string')
+          : [];
+        const request: SelectionRequest = {
+          action: r.action, text: String(r.text ?? ''), around: String(r.around ?? ''), title: String(r.title ?? ''), url: String(r.url ?? ''),
+          instruction: r.instruction ? String(r.instruction) : undefined, language: r.language ? String(r.language) : undefined,
+          tone: r.tone ? String(r.tone) : undefined, turns,
+        };
+        if (!request.text && request.action !== 'ask') throw new Error('Select some text first');
+        if ((request.action === 'ask' || request.action === 'edit') && !request.instruction?.trim()) throw new Error('Type what you want first');
+        const { value } = await ask((c) => callLLM(selectionMessages(request), c, {
+          maxTokens: 1500, onText: (soFar) => post({ type: 'text', text: soFar }), signal: abort.signal,
+        }), true);
+        post({ type: 'done', text: value });
+      } catch (err) {
+        if (!abort.signal.aborted) post({ type: 'error', message: (err as Error)?.message || 'Tabi couldn’t answer that.' });
+      }
+    });
+  });
+
   // Central message handler
   browser.runtime.onMessage.addListener((message: any, _sender, sendResponse) => {
     const { action, payload } = message;
@@ -556,10 +596,13 @@ export default defineBackground(() => {
     // "Review" on the page's cue: the side panel, where the question is. Before
     // any await, while the click still counts as the user's gesture.
     if (action === 'OPEN_PANEL') {
-      // "Continue in panel" from the toolbar on selected text: the panel shows that question and answer
-      const answer = payload?.answer;
-      if (_sender.tab?.id !== undefined && typeof answer?.question === 'string' && typeof answer?.answer === 'string') {
-        const pending = { tabId: _sender.tab.id, question: answer.question.slice(0, 500), answer: answer.answer.slice(0, 20_000), at: Date.now() };
+      // "Continue in panel" from the toolbar on selected text: the panel shows that conversation
+      const answers = (Array.isArray(payload?.answers) ? payload.answers : [])
+        .filter((a: any) => typeof a?.question === 'string' && typeof a?.answer === 'string')
+        .slice(-20)
+        .map((a: any) => ({ question: a.question.slice(0, 2000), answer: a.answer.slice(0, 20_000) }));
+      if (_sender.tab?.id !== undefined && answers.length) {
+        const pending = { tabId: _sender.tab.id, answers, at: Date.now() };
         chrome.storage.session.set({ tabi_panel_answer: pending }).catch(() => {});
         chrome.runtime.sendMessage({ action: 'PANEL_ANSWER', payload: pending }).catch(() => {});
       }
@@ -673,22 +716,6 @@ export default defineBackground(() => {
           case 'EXPLAIN': {
             const { value: explanation } = await ask((c) => explainText(payload.text, c));
             sendResponse({ success: true, data: { result: explanation } });
-            break;
-          }
-
-          case 'SELECTION_ASK': {
-            // The toolbar on selected text (lib/dom/selectionToolbar.ts): a short answer, from the fast model when there is one
-            const kind = payload?.kind as SelectionKind;
-            if (!['ask', 'explain', 'translate', 'summarize'].includes(kind)) throw new Error('Unknown request');
-            const text = String(payload?.text ?? '').trim();
-            if (!text) throw new Error('Select some text first');
-            if (kind === 'ask' && !String(payload?.question ?? '').trim()) throw new Error('Type a question first');
-            const context = {
-              title: String(payload?.title ?? ''), url: String(payload?.url ?? ''), around: String(payload?.around ?? ''),
-              question: payload?.question ? String(payload.question) : undefined, language: payload?.language ? String(payload.language) : undefined,
-            };
-            const { value } = await ask((c) => askAboutSelection(kind, text, context, c), true);
-            sendResponse({ success: true, data: { result: value } });
             break;
           }
 

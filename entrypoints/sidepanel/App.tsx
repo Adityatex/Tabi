@@ -151,15 +151,16 @@ export default function App() {
     return () => browser.runtime.onMessage.removeListener(listener);
   }, [tabId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // "Continue in panel" from the toolbar on selected text: its question and answer join this tab's answers
+  // "Continue in panel" from the toolbar on selected text: its conversation joins this tab's answers
   useEffect(() => {
     if (tabId === undefined) return;
     let handled = 0;
-    const take = (pending: { tabId: number; question: string; answer: string; at: number } | undefined) => {
+    const take = (pending: { tabId: number; answers: { question: string; answer: string }[]; at: number } | undefined) => {
       if (!pending || pending.at <= handled || Date.now() - pending.at > 30_000) return;
       handled = pending.at;
       browser.storage.session.remove('tabi_panel_answer').catch(() => {});
-      if (pending.tabId === tabId) addAnswer(tabId, { id: newId(), question: pending.question, answer: pending.answer, canDo: false });
+      if (pending.tabId !== tabId) return;
+      for (const { question, answer } of pending.answers ?? []) addAnswer(tabId, { id: newId(), question, answer, canDo: false });
     };
     browser.storage.session.get('tabi_panel_answer').then((s) => take(s.tabi_panel_answer as any)).catch(() => {});
     const listener = (message: any) => { if (message?.action === 'PANEL_ANSWER') take(message.payload); };

@@ -33,6 +33,8 @@ export default defineConfig({
     permissions: ['activeTab', 'scripting', 'storage', 'debugger', 'alarms', 'notifications', 'tabGroups', 'sidePanel', 'contextMenus'],
     commands: {
       _execute_action: { suggested_key: { default: 'Alt+T' }, description: 'Open Tabi' },
+      // The toolbar on selected text: ask about the selection, or the page when nothing is selected
+      'ask-selection': { suggested_key: { default: 'Alt+J' }, description: 'Ask Tabi about the selected text' },
     },
     // <all_urls> covers every LLM provider, including a local Ollama
     host_permissions: ['<all_urls>'],

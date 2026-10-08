@@ -115,6 +115,8 @@ async function main(): Promise<void> {
     const footer = await panel.locator('footer').innerText();
     check('the open-Tabi shortcut is Alt+T, and Settings and the panel show it',
       assigned === 'Alt+T' && shown === 'Alt+T' && footer.includes('Alt+T') && !footer.includes('Ctrl+G'), `browser: "${assigned}", Settings: "${shown}"`);
+    const askKey = await settings.getByTestId('ask-shortcut').innerText({ timeout: 5_000 }).catch(() => '');
+    check('the ask-about-selection shortcut is Alt+J, and Settings shows it', askKey === 'Alt+J', askKey);
   } finally {
     await context.close().catch(() => {});
     await fixtures.close();

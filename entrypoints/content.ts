@@ -1,6 +1,6 @@
 // entrypoints/content.ts
 // Tabi in the page: eyes and hands, the cue while a task runs here, and the
-// toolbar on selected text (Ask, Explain, Translate, Summarize). The
+// toolbar on selected text (lib/dom/selectionToolbar.ts). The
 // agent runner in the background reads the page (AGENT_SNAPSHOT) and acts on
 // it (AGENT_EXECUTE) through this script, and the side panel asks it for the
 // page's text, the selection, or an autofill. Cross-origin frames have their
@@ -16,7 +16,7 @@ import { loadStoredProfile, isProfileEmpty } from '@/lib/automation/profile';
 import { reportColorScheme } from '@/lib/utils/toolbarIcon';
 import { createPageCue, cueOf } from '@/lib/dom/pageCue';
 import { createSelectionToolbar } from '@/lib/dom/selectionToolbar';
-import { SELECTION_KEY, cleanSelectionPrefs, selectionShowsOn, updateSelectionPrefs, type SelectionPrefs } from '@/lib/utils/selectionPrefs';
+import { SELECTION_KEY, cleanSelectionPrefs, selectionModesOn, updateSelectionPrefs, type SelectionPrefs } from '@/lib/utils/selectionPrefs';
 import { THEME_KEY } from '@/lib/utils/theme';
 
 /** How long the cue steps aside while the background takes a screenshot for the model. */
@@ -40,29 +40,43 @@ export default defineContentScript({
       .then((res: any) => cue.set(cueOf(res?.data)))
       .catch(() => {});
 
-    // The toolbar on selected text: Ask, Explain, Translate, Summarize, answered
-    // in a card on the page. On unless the user turned it off, or off for this site.
+    // The toolbar on selected text: Ask, Explain, Translate, Summarize on text
+    // being read; Improve, Fix grammar, tone... on text in a text box. Answers
+    // stream into a small chat window on the page. On unless the user turned
+    // it off, or off for this site.
     let language = 'English';
     try {
       language = new Intl.DisplayNames(['en'], { type: 'language' }).of(navigator.language.split('-')[0]) ?? language;
     } catch { /* an unusual locale: English */ }
     const selection = createSelectionToolbar({
-      run: async (kind, text, around, question) => {
-        const res: any = await browser.runtime.sendMessage({
-          action: 'SELECTION_ASK',
-          payload: { kind, text, question, around, language, title: document.title, url: location.href },
+      // One connection per answer: the background streams it back, and closing it stops the request
+      stream: (request, onText, signal) => new Promise<string>((resolve, reject) => {
+        const port = browser.runtime.connect({ name: 'tabi-selection' });
+        let settled = false;
+        const finish = (fn: () => void) => {
+          if (settled) return;
+          settled = true;
+          fn();
+          try { port.disconnect(); } catch { /* already closed */ }
+        };
+        port.onMessage.addListener((m: any) => {
+          if (m?.type === 'text') onText(String(m.text ?? ''));
+          else if (m?.type === 'done') finish(() => resolve(String(m.text ?? '')));
+          else if (m?.type === 'error') finish(() => reject(new Error(m.message || 'Tabi couldn’t answer that.')));
         });
-        if (!res?.success) throw new Error(res?.error || 'Tabi couldn’t answer that.');
-        return String(res.data?.result ?? '');
-      },
-      onContinue: (question, answer) => {
-        browser.runtime.sendMessage({ action: 'OPEN_PANEL', payload: { answer: { question, answer } } }).catch(() => {});
+        port.onDisconnect.addListener(() => finish(() => reject(new Error('Tabi stopped answering. Reload the page and try again.'))));
+        signal.addEventListener('abort', () => finish(() => reject(new Error('Stopped'))));
+        port.postMessage({ type: 'start', request: { ...request, language, title: document.title, url: location.href } });
+      }),
+      onContinue: (pairs) => {
+        browser.runtime.sendMessage({ action: 'OPEN_PANEL', payload: { answers: pairs } }).catch(() => {});
       },
       onHideSite: () => { updateSelectionPrefs({ hide: location.href }).catch(() => {}); },
       onTurnOff: () => { updateSelectionPrefs({ enabled: false }).catch(() => {}); },
+      onTurnOffWriting: () => { updateSelectionPrefs({ writing: false }).catch(() => {}); },
       onSettings: () => { browser.runtime.sendMessage({ action: 'OPEN_SETTINGS', payload: { section: 'appearance' } }).catch(() => {}); },
     });
-    const applySelectionPrefs = (prefs: SelectionPrefs) => selection.setEnabled(selectionShowsOn(prefs, location.href));
+    const applySelectionPrefs = (prefs: SelectionPrefs) => selection.setEnabled(selectionModesOn(prefs, location.href));
     const applyTheme = (theme: unknown) => selection.setTheme(theme === 'light' || theme === 'dark' ? theme : 'system');
     browser.storage.local.get([SELECTION_KEY, THEME_KEY]).then((stored) => {
       applySelectionPrefs(cleanSelectionPrefs(stored[SELECTION_KEY]));
@@ -77,6 +91,11 @@ export default defineContentScript({
     browser.runtime.onMessage.addListener((message: any, _sender, sendResponse) => {
       switch (message?.action) {
         case 'AGENT_PING':
+          sendResponse({ ok: true });
+          return;
+        case 'SELECTION_SHORTCUT':
+          // Alt+J (or the user's own key): ask about the selection, or about the page
+          selection.askShortcut();
           sendResponse({ ok: true });
           return;
         case 'TABI_CUE':

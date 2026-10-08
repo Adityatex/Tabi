@@ -8,7 +8,7 @@ import TabiMark from '@/components/TabiMark';
 import { Card, ControlRow, Field, Notice, PageHead, Segmented, TextInput, ToggleRow, send } from '../ui';
 import { DEFAULT_SELECTION, SELECTION_KEY, cleanSelectionPrefs, loadSelectionPrefs, updateSelectionPrefs, type SelectionPrefs } from '@/lib/utils/selectionPrefs';
 import { THEMES, loadTheme, saveTheme, type Theme } from '@/lib/utils/theme';
-import { shortcutsPage, useOpenShortcut } from '@/components/useOpenShortcut';
+import { ASK_COMMAND, shortcutsPage, useOpenShortcut } from '@/components/useOpenShortcut';
 
 export function Autofill() {
   const [profile, setProfile] = useState<AutofillProfile>({ ...DEFAULT_PROFILE });
@@ -77,14 +77,26 @@ export function Appearance() {
         >
           {error && <Notice kind="error">{error}</Notice>}
         </ControlRow>
-        <KeyboardShortcut />
+        <KeyboardShortcut
+          title="Open Tabi"
+          testId="open-shortcut"
+          note="Opens the side panel from any page. Only the browser can change a shortcut: Change opens its shortcuts page. Pick a key the browser doesn’t use, since its own shortcuts win (Ctrl+G is its Find next)."
+          none="No key opens Tabi right now: the browser may have kept the one Tabi suggested for itself. The toolbar icon and the right-click menu still open it."
+        />
+        <KeyboardShortcut
+          command={ASK_COMMAND}
+          title="Ask about the selected text"
+          testId="ask-shortcut"
+          note="Opens a small chat about the text you’ve selected, or about the page when nothing is selected. In a text box, it asks how to change what you selected."
+          none="No key is set for this: the toolbar on selected text still has an Ask button."
+        />
       </Card>
       <SelectionToolbarSetting />
     </>
   );
 }
 
-/** The toolbar on selected text: on or off, and the sites it stays off. */
+/** The toolbar on selected text: on or off, its writing tools, and the sites it stays off. */
 function SelectionToolbarSetting() {
   const [prefs, setPrefs] = useState<SelectionPrefs | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -110,7 +122,7 @@ function SelectionToolbarSetting() {
     <Card bare testId="selection-toolbar">
       <ToggleRow
         title="Toolbar on selected text"
-        note="Select text on any page to ask about it, explain, translate or summarize it, with the answer beside the text. Nothing is sent to your AI provider until you press one of its buttons. It uses your fast model when you have one."
+        note="Select text on any page to ask about it, explain, translate or summarize it: the answer appears in a small chat beside the text, where you can ask follow-ups. Nothing is sent to your AI provider until you press one of its buttons. It uses your fast model when you have one."
         on={prefs.enabled}
         onChange={(on) => change({ enabled: on })}
       >
@@ -132,30 +144,38 @@ function SelectionToolbarSetting() {
           <div className="text-[12px] text-muted">To keep it off a site, use “Don’t show on …” in the toolbar’s ⋯ menu there.</div>
         )}
       </ToggleRow>
+      {prefs.enabled && (
+        <ToggleRow
+          title="Writing tools in text boxes"
+          note="Select text you’re writing (in a comment, an email, a form) to improve it, fix its grammar, shorten it or change its tone, then replace it or insert the result below. Never in password fields."
+          on={prefs.writing}
+          onChange={(on) => change({ writing: on })}
+        />
+      )}
     </Card>
   );
 }
 
-/** The key that opens Tabi, as the browser has it, and the way to change it (only the browser can). */
-function KeyboardShortcut() {
-  const shortcut = useOpenShortcut();
+/** One of Tabi's shortcuts, as the browser has it, and the way to change it (only the browser can). */
+function KeyboardShortcut({ command, title, note, testId, none }: { command?: string; title: string; note: string; testId: string; none: string }) {
+  const shortcut = useOpenShortcut(command);
   const page = shortcutsPage();
   return (
     <ControlRow
-      title="Open Tabi"
-      note="Opens the side panel from any page. Only the browser can change it: Change opens its shortcuts page, where you set Tabi’s “Open Tabi”. Pick a key the browser doesn’t use, since its own shortcuts win (Ctrl+G is its Find next)."
+      title={title}
+      note={note}
       control={(
         <div className="flex items-center gap-2">
           {shortcut === undefined ? null : shortcut
-            ? <kbd className="font-mono text-[12.5px] border border-border-strong rounded-[4px] px-[7px] py-[2px] bg-bg" data-testid="open-shortcut">{shortcut}</kbd>
-            : <span className="text-[12.5px] text-muted" data-testid="open-shortcut">Not set</span>}
+            ? <kbd className="font-mono text-[12.5px] border border-border-strong rounded-[4px] px-[7px] py-[2px] bg-bg" data-testid={testId}>{shortcut}</kbd>
+            : <span className="text-[12.5px] text-muted" data-testid={testId}>Not set</span>}
           <button type="button" className="btn btn-secondary btn-sm" onClick={() => browser.tabs.create({ url: page })}>
             <Keyboard size={13} aria-hidden />{shortcut ? 'Change' : 'Set a shortcut'}
           </button>
         </div>
       )}
     >
-      {shortcut === '' && <Notice kind="info">No key opens Tabi right now: the browser may have kept the one Tabi suggested for itself. The toolbar icon and the right-click menu still open it.</Notice>}
+      {shortcut === '' && <Notice kind="info">{none}</Notice>}
     </ControlRow>
   );
 }

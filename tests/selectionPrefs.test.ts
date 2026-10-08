@@ -4,7 +4,7 @@ import { cleanSelectionPrefs, selectionShowsOn } from '@/lib/utils/selectionPref
 describe('toolbar on selected text: where it shows', () => {
   it('is on by default, everywhere', () => {
     const prefs = cleanSelectionPrefs(undefined);
-    expect(prefs).toEqual({ enabled: true, hiddenOn: [] });
+    expect(prefs).toEqual({ enabled: true, writing: true, hiddenOn: [] });
     expect(selectionShowsOn(prefs, 'https://news.example.com/story')).toBe(true);
   });
 
