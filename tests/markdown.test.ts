@@ -49,3 +49,16 @@ describe('renderMarkdown', () => {
     expect(renderMarkdown('[x](javascript:alert(1))')).toBe('<p>[x](javascript:alert(1))</p>');
   });
 });
+
+describe('code blocks with a Copy button', () => {
+  it('heads a code block with its language and a button to copy just the code', () => {
+    expect(renderMarkdown('Here:\n```cpp\nint x = 1 < 2;\n```', { copyCode: true }))
+      .toBe('<p>Here:</p><div class="code"><div class="code-head"><span>cpp</span><button type="button" class="code-copy" data-copy-code>Copy</button></div>'
+        + '<pre class="code-block"><code>int x = 1 &lt; 2;</code></pre></div>');
+    expect(renderMarkdown('```\nx\n```', { copyCode: true })).toContain('<span>code</span>');
+  });
+
+  it('leaves code blocks plain unless asked', () => {
+    expect(renderMarkdown('```js\nx\n```')).toBe('<pre class="code-block"><code>x</code></pre>');
+  });
+});

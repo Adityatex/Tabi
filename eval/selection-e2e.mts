@@ -42,6 +42,7 @@ function reply(messages: { role: string; content: string }[]): string {
   const system = messages[0]?.content ?? '';
   const last = messages.at(-1)?.content ?? '';
   if (last === 'And at night?') return 'At night, plants **rest** and use stored sugar.';
+  if (system.includes('Show it as code')) return 'Like this:\n\n```cpp\nint light = sun();\nreturn light * 2;\n```\n\nThat doubles it.';
   if (system.includes('Explain what the selected text means')) return '**Photosynthesis** is how plants turn light into chemical energy.';
   if (system.includes('Fix spelling, grammar')) return 'The plant needs sunlight to grow.';
   if (system.includes('Improve the writing')) return 'I have an idea about leaves.';
@@ -215,6 +216,35 @@ async function main(): Promise<void> {
     check('with the question in the prompt', lastPrompt().includes('Where does it happen?') && lastPrompt().includes('"""photosynthesis"""'));
     await page.keyboard.press('Escape');
     check('Escape closes it', await waitState(page, 'none') === 'none');
+
+    // 6b. Code in an answer: its own Copy copies just the code; the question box has no scrollbar while it fits
+    await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: fixtures.baseUrl });
+    await selectWord(page, '#term');
+    await waitState(page, 'bar');
+    await clickButton(page, cdp, 'ask');
+    await page.keyboard.type('Show it as code');
+    await page.keyboard.press('Enter');
+    await waitState(page, 'answer');
+    const codeWin = await partText(cdp, 'win');
+    await click(page, cdp, 'BUTTON', 'data-copy-code', '');
+    await page.waitForTimeout(200);
+    const copied = await page.evaluate(() => navigator.clipboard.readText()).catch(() => '');
+    check('a code block says its language, and its Copy copies just the code', codeWin.includes('cpp') && copied.replace(/\r\n/g, '\n') === 'int light = sun();\nreturn light * 2;', JSON.stringify(copied));
+    await cdp.send('CSS.enable').catch(() => {});
+    const textarea = await findNode(cdp, 'TEXTAREA', 'aria-label', 'Ask a follow-up');
+    const style = textarea ? await cdp.send('CSS.getComputedStyleForNode', { nodeId: textarea }).catch(() => null) as { computedStyle: { name: string; value: string }[] } | null : null;
+    const overflow = style?.computedStyle.find((p) => p.name === 'overflow-y')?.value;
+    check('the question box has no scrollbar while its text fits', overflow === 'hidden', String(overflow));
+
+    // 6c. Pinned, it stays open on a click elsewhere; unpinned, it closes
+    await clickButton(page, cdp, 'pin');
+    await page.mouse.click(5, 5);
+    await page.waitForTimeout(300);
+    const pinnedState = await state(page);
+    await clickButton(page, cdp, 'pin');
+    await page.mouse.click(5, 5);
+    await page.waitForTimeout(300);
+    check('pinned, the window stays open when you click elsewhere; unpinned, it closes', pinnedState === 'answer' && await state(page) === 'none', `${pinnedState}, then ${await state(page)}`);
 
     // 7. The shortcut (Alt+J) with nothing selected asks about the page
     await page.mouse.click(5, 5);

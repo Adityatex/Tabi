@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Locate, MessageCircle, Zap } from 'lucide-react';
 import TabiMark from '@/components/TabiMark';
-import { renderMarkdown } from '@/lib/utils/markdown';
+import { copyCodeOnClick, renderMarkdown } from '@/lib/utils/markdown';
 import { splitSources, type Source } from '@/lib/panel/view';
 
 export interface Answer {
@@ -92,7 +92,7 @@ function AnswerBody({ text, onShowSource }: { text: string; onShowSource: (quote
   const { answer, sources } = splitSources(text);
   return (
     <>
-      <div className="answer text-[14px] leading-[1.55] [text-wrap:pretty] [overflow-wrap:anywhere]" dangerouslySetInnerHTML={{ __html: renderMarkdown(answer) }} />
+      <div className="answer text-[14px] leading-[1.55] [text-wrap:pretty] [overflow-wrap:anywhere]" onClick={(e) => copyCodeOnClick(e.target)} dangerouslySetInnerHTML={{ __html: renderMarkdown(answer, { copyCode: true }) }} />
       {sources.length > 0 && <Sources sources={sources} onShow={onShowSource} />}
     </>
   );

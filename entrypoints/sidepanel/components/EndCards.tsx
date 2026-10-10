@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import TabiMark from '@/components/TabiMark';
 import type { RunView } from '@/lib/agent/runner';
-import { renderMarkdown } from '@/lib/utils/markdown';
+import { copyCodeOnClick, renderMarkdown } from '@/lib/utils/markdown';
 import { failureKind, formatElapsed, planItems, siteOf } from '@/lib/panel/view';
 
 const card = 'bg-surface border border-border rounded-card p-[14px]';
@@ -52,7 +52,8 @@ export function DoneCard({ run, save, offerClosed, onSave, onCloseOffer, onTimel
         <div
           className="answer mt-2 text-[13.5px] leading-[1.55] [text-wrap:pretty] [overflow-wrap:anywhere]"
           data-testid="summary"
-          dangerouslySetInnerHTML={{ __html: renderMarkdown(run.outcome || 'Finished.') }}
+          onClick={(e) => copyCodeOnClick(e.target)}
+          dangerouslySetInnerHTML={{ __html: renderMarkdown(run.outcome || 'Finished.', { copyCode: true }) }}
         />
         <div className="grid grid-cols-3 gap-[6px] mt-3 pt-3 border-t border-border">
           {stats.map(([value, label]) => (

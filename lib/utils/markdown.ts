@@ -54,7 +54,15 @@ function list(lines: string[]): string {
   return html;
 }
 
-export function renderMarkdown(text: string): string {
+export interface MarkdownOptions {
+  /**
+   * Put a header on code blocks with their language and a Copy button
+   * (button[data-copy-code]); the page that shows it handles the click.
+   */
+  copyCode?: boolean;
+}
+
+export function renderMarkdown(text: string, opts: MarkdownOptions = {}): string {
   if (!text) return '';
   const lines = escapeHtml(text.replace(/\r\n?/g, '\n')).split('\n');
   const blocks: string[] = [];
@@ -63,11 +71,15 @@ export function renderMarkdown(text: string): string {
     const line = lines[i];
     if (!line.trim()) { i++; continue; }
 
-    if (/^\s*```/.test(line)) {
+    const fence = /^\s*```\s*([\w#+.-]*)/.exec(line);
+    if (fence) {
       const code: string[] = [];
       for (i++; i < lines.length && !/^\s*```/.test(lines[i]); i++) code.push(lines[i]);
       i++;
-      blocks.push(`<pre class="code-block"><code>${code.join('\n')}</code></pre>`);
+      const pre = `<pre class="code-block"><code>${code.join('\n')}</code></pre>`;
+      blocks.push(opts.copyCode
+        ? `<div class="code"><div class="code-head"><span>${fence[1] || 'code'}</span><button type="button" class="code-copy" data-copy-code>Copy</button></div>${pre}</div>`
+        : pre);
       continue;
     }
     const heading = /^(#{1,6})\s+(.+?)\s*#*$/.exec(line);
@@ -121,4 +133,19 @@ export function renderMarkdown(text: string): string {
     blocks.push(`<p>${para.join('<br/>')}</p>`);
   }
   return blocks.join('');
+}
+
+/**
+ * For a click inside rendered Markdown: a code block's Copy button copies
+ * just that block's code, and says so for a moment. True if it was one.
+ */
+export function copyCodeOnClick(target: EventTarget | null): boolean {
+  const button = (target as Element | null)?.closest?.('[data-copy-code]') as HTMLButtonElement | null;
+  if (!button) return false;
+  const code = button.closest('.code')?.querySelector('code')?.textContent ?? '';
+  navigator.clipboard?.writeText(code).then(() => {
+    button.textContent = 'Copied';
+    setTimeout(() => { button.textContent = 'Copy'; }, 1400);
+  }).catch(() => {});
+  return true;
 }

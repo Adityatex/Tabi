@@ -88,6 +88,7 @@ const ICON = {
   send: svg('<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>', 13),
   stop: '<svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><rect x="1" y="1" width="8" height="8" rx="1.5" fill="currentColor"/></svg>',
   panel: svg('<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M15 3v18"/>', 13),
+  pin: svg('<path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/>', 13),
   retry: svg('<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>', 13),
 };
 
@@ -115,6 +116,8 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 button svg { color: var(--muted); flex: none; }
 button:hover svg { color: var(--text); }
 .icon { width: 28px; padding: 0; justify-content: center; }
+.icon[aria-pressed="true"] { background: var(--accent-soft); }
+.icon[aria-pressed="true"] svg { color: var(--accent); }
 .sep { width: 1px; height: 18px; background: var(--border); margin: 0 3px; flex: none; }
 .group { display: contents; }
 .menu { border-radius: 8px; padding: 4px; display: flex; flex-direction: column; min-width: 180px; }
@@ -126,7 +129,7 @@ button:hover svg { color: var(--text); }
 .title .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .quote { margin: 2px 12px 4px; padding-left: 8px; border-left: 2px solid var(--border-strong); color: var(--muted); font-size: 12px;
   overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-.thread { padding: 6px 12px 4px; overflow-y: auto; scrollbar-width: thin; display: flex; flex-direction: column; gap: 10px; min-height: 0; flex: 1; }
+.thread { padding: 6px 12px 4px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; display: flex; flex-direction: column; gap: 10px; min-height: 0; flex: 1; }
 .thread:empty { display: none; }
 .msg { overflow-wrap: anywhere; font-size: 13.5px; line-height: 1.55; }
 .msg.user { align-self: flex-end; max-width: 85%; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 6px 10px; font-size: 13px; white-space: pre-wrap; }
@@ -141,7 +144,8 @@ button:hover svg { color: var(--text); }
 .primary svg { color: inherit; }
 .compose { display: flex; align-items: flex-end; gap: 6px; margin: 4px 8px 8px; padding: 5px 5px 5px 10px; border: 1px solid var(--border); border-radius: 9px; background: var(--bg); }
 .compose:focus-within { border-color: var(--border-strong); }
-textarea { all: unset; box-sizing: border-box; flex: 1; min-height: 22px; max-height: 120px; overflow-y: auto; font: inherit; font-size: 13px; line-height: 1.45; padding: 2px 0;
+textarea { all: unset; box-sizing: border-box; flex: 1; min-height: 22px; max-height: 120px; overflow-y: hidden; resize: none;
+  scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; font: inherit; font-size: 13px; line-height: 1.45; padding: 2px 0;
   color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; }
 textarea::placeholder { color: var(--muted); }
 .send { width: 26px; height: 26px; padding: 0; justify-content: center; background: var(--accent); color: var(--accent-text); flex: none; }
@@ -157,7 +161,12 @@ textarea::placeholder { color: var(--muted); }
 .answer li + li { margin-top: 3px; }
 .answer .inline-code, .answer .code-block { font-family: 'Geist Mono Variable', ui-monospace, monospace; font-size: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; }
 .answer .inline-code { padding: 0 3px; }
-.answer .code-block { display: block; padding: 6px 8px; white-space: pre-wrap; }
+.answer .code { border: 1px solid var(--border); border-radius: 6px; overflow: hidden; background: var(--bg); }
+.answer .code-head { display: flex; align-items: center; justify-content: space-between; padding: 2px 4px 2px 10px; border-bottom: 1px solid var(--border); font-size: 11.5px; color: var(--muted); }
+.answer .code-copy { height: 22px; padding: 0 8px; font-size: 11.5px; }
+.answer .code .code-block { border: 0; border-radius: 0; }
+.answer .code-block { display: block; padding: 8px 10px; white-space: pre; overflow-x: auto; tab-size: 4; font-weight: 400;
+  scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
 .answer .md-quote { border-left: 2px solid var(--border-strong); padding-left: 8px; color: var(--muted); }
 .answer .md-table { overflow-x: auto; border: 1px solid var(--border); border-radius: 4px; }
 .answer table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
@@ -240,6 +249,7 @@ export function createSelectionToolbar(opts: SelectionToolbarOptions): Selection
       <div class="win" role="dialog" aria-label="Tabi" hidden>
         <div class="head" title="Drag to move">
           <span class="title"><span class="mark" aria-hidden="true">${MARK}</span><span class="name"></span></span>
+          <button type="button" class="icon" data-action="pin" title="Pin: stays open when you click elsewhere" aria-label="Pin" aria-pressed="false">${ICON.pin}</button>
           <button type="button" class="icon" data-action="continue" title="Continue in the side panel" aria-label="Continue in the side panel">${ICON.panel}</button>
           <button type="button" class="icon" data-action="close" title="Close (Esc)" aria-label="Close">${ICON.close}</button>
         </div>
@@ -314,7 +324,7 @@ export function createSelectionToolbar(opts: SelectionToolbarOptions): Selection
     streaming?.abort();
     streaming = null;
     convo = null;
-    pinned = false;
+    setPinned(false);
     bar.hidden = true;
     box.hidden = true;
     closeMenus();
@@ -384,7 +394,7 @@ export function createSelectionToolbar(opts: SelectionToolbarOptions): Selection
       el.textContent = text;
     } else {
       el.className = 'msg answer';
-      el.innerHTML = renderMarkdown(text);
+      el.innerHTML = renderMarkdown(text, { copyCode: true });
     }
   };
 
@@ -408,9 +418,17 @@ export function createSelectionToolbar(opts: SelectionToolbarOptions): Selection
     sendBtn.disabled = !streaming && !input.value.trim();
   };
 
+  /** The box grows with its text; only at its tallest does it scroll. */
   const fitInput = () => {
     input.style.height = 'auto';
     input.style.height = `${Math.min(input.scrollHeight, 120)}px`;
+    input.style.overflowY = input.scrollHeight > 120 ? 'auto' : 'hidden';
+  };
+
+  const setPinned = (on: boolean) => {
+    pinned = on;
+    button('pin').setAttribute('aria-pressed', String(on));
+    button('pin').title = on ? 'Pinned: stays open until you close it' : 'Pin: stays open when you click elsewhere';
   };
 
   /** Ask the model for the next answer in the conversation, streaming it into a new message. */
@@ -474,9 +492,10 @@ export function createSelectionToolbar(opts: SelectionToolbarOptions): Selection
     quote.textContent = p.text || doc.title || win.location.hostname;
     input.value = '';
     fitInput();
+    // A pinned window stays where it is; otherwise it opens by the selection
+    const wasOpen = !box.hidden;
     box.hidden = false;
-    pinned = false;
-    place(box, p.rect, false);
+    if (!pinned || !wasOpen) place(box, p.rect, false);
     setComposer();
     state();
     if (action === 'ask' || action === 'edit') input.focus();
@@ -598,10 +617,17 @@ export function createSelectionToolbar(opts: SelectionToolbarOptions): Selection
 
   box.addEventListener('click', (e) => {
     const btn = (e.target as Element).closest('button');
+    // A code block's own Copy: just its code
+    if (btn?.hasAttribute('data-copy-code')) {
+      const code = btn.closest('.code')?.querySelector('code')?.textContent ?? '';
+      win.navigator.clipboard?.writeText(code).then(() => flash(btn as HTMLButtonElement, 'Copied')).catch(() => {});
+      return;
+    }
     const action = btn?.dataset.action;
     if (!action || !convo) return;
     const last = convo.pairs.at(-1)?.answer;
-    if (action === 'close') closeAll();
+    if (action === 'pin') setPinned(!pinned);
+    else if (action === 'close') closeAll();
     else if (action === 'continue') {
       if (convo.pairs.length) opts.onContinue(convo.pairs);
       closeAll();
@@ -648,7 +674,7 @@ export function createSelectionToolbar(opts: SelectionToolbarOptions): Selection
     const move = (ev: PointerEvent) => {
       box.style.left = `${Math.min(Math.max(0, ev.clientX - dx), win.innerWidth - r.width)}px`;
       box.style.top = `${Math.min(Math.max(0, ev.clientY - dy), win.innerHeight - 40)}px`;
-      pinned = true;
+      if (!pinned) setPinned(true);
     };
     const up = () => {
       head.removeEventListener('pointermove', move);
