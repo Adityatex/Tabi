@@ -82,7 +82,7 @@ async function main(): Promise<void> {
     await box.fill('/house');
     await box.press('Enter');
     check('picking it puts "/house-style " in the box and says what to do next',
-      (await box.inputValue()) === '/house-style ' && await panel.getByText('Now say what to do with /house-style').isVisible().catch(() => false), await box.inputValue());
+      (await box.inputValue()) === '/house-style ' && await panel.getByText('Now say what to do with /house-style').waitFor({ timeout: 5_000 }).then(() => true, () => false), await box.inputValue());
 
     // 3. The task runs with the skill in the first prompt, and the card says so
     await box.press('End');
@@ -114,7 +114,7 @@ async function main(): Promise<void> {
     const before = calls;
     await box.fill('/no-such-skill do something');
     await box.press('Enter');
-    const error = await panel.getByText('There’s no workflow, shortcut, skill or command called /no-such-skill').isVisible({ timeout: 5_000 }).catch(() => false);
+    const error = await panel.getByText('There’s no workflow, shortcut, skill or command called /no-such-skill').waitFor({ timeout: 5_000 }).then(() => true, () => false);
     await panel.waitForTimeout(500);
     check('an unknown /name says so, and runs nothing', error && calls === before, `calls ${before} → ${calls}`);
   } finally {
