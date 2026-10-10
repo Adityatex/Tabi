@@ -5,7 +5,8 @@
 // `mockPlan` is a scripted planner used by `--mock` runs: each step's `target`
 // regex is matched against the DOM snapshot line the real model would see
 // (e.g. `[3] <button> type="submit" "Search"`), and its optional `group` against
-// the question or section heading that line is listed under, so mock runs exercise the real
+// the question or section heading that line is listed under (`nth`: the nth such
+// match, from 0, for questions repeated on a page), so mock runs exercise the real
 // snapshot + executor + navigation-resume code in a real browser, just without
 // an LLM. When the target isn't in the snapshot, the mock gives up — which is
 // exactly how a model fails when an element is invisible to it.
@@ -16,7 +17,7 @@
 import type { RecordedEvent } from './server.mts';
 
 export type MockStep =
-  | { action: 'click'; target: RegExp; group?: RegExp }
+  | { action: 'click'; target: RegExp; group?: RegExp; nth?: number }
   | { action: 'type' | 'clear_and_type'; target: RegExp; text: string; group?: RegExp }
   | { action: 'select'; target: RegExp; value: string; group?: RegExp }
   | { action: 'press_key'; key: string; target?: RegExp }
@@ -248,6 +249,34 @@ export const TASKS: Task[] = [
         { action: 'type', target: /"Minutes"/, text: '00', group: /noon/ },
       ],
       { action: 'click', target: /role="button" "Submit"/ },
+    ],
+  },
+  {
+    // A university feedback portal: each rating is a <label> around a radio that
+    // CSS hides, the question is a plain <span>, and every course repeats the
+    // same questions. The draft saves itself; submitting is not wanted.
+    id: 'feedback-cards',
+    category: 'hard',
+    start: '/feedback-cards.html',
+    goal: 'Fill in this feedback form: answer Agree to every question about Machine Learning Lab, and Strongly Agree to every question about Mobile Computing. Don\'t submit it.',
+    check: r => {
+      const drafts = r.events.filter(e => e.path === '/api/feedback-cards/draft');
+      const last = (drafts.at(-1)?.data.answers ?? {}) as Record<string, string>;
+      const want = (code: string, value: string) => [1, 2, 3].every(q => last[`answer[${code}][0009005][${q}]`] === value);
+      return want('CSP473', '4') && want('CSE062', '5') && Object.keys(last).length === 6 && !hit(r.events, '/api/feedback-cards/submit');
+    },
+    mockPlan: [
+      [
+        { action: 'click', target: /type="radio" "Agree"/, group: /^1: The syllabus/ },
+        { action: 'click', target: /type="radio" "Agree"/, group: /^2: The teacher/ },
+        { action: 'click', target: /type="radio" "Agree"/, group: /^3: The overall quality/ },
+      ],
+      [
+        { action: 'click', target: /type="radio" "Strongly Agree"/, group: /^1: The syllabus/, nth: 1 },
+        { action: 'click', target: /type="radio" "Strongly Agree"/, group: /^2: The teacher/, nth: 1 },
+        { action: 'click', target: /type="radio" "Strongly Agree"/, group: /^3: The overall quality/, nth: 1 },
+      ],
+      { action: 'done', summary: 'Filled in both courses; not submitted.' },
     ],
   },
   {

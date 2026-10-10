@@ -1,0 +1,72 @@
+<!doctype html>
+<html><head><title>Student Feedback</title><meta charset="utf-8">
+<!-- Built like a university feedback portal: each course has the same
+     questions; every rating is a <label> around a radio that CSS hides
+     (display:none), so only the label's text shows; the question is a plain
+     <span> next to them, linked to nothing. The form saves a draft on every
+     change, and only Submit sends it. -->
+<style>
+  body { font-family: sans-serif; background: #eef1f6; margin: 0; padding: 16px; }
+  .course { background: #fff; margin: 0 0 24px; border: 1px solid #ddd; }
+  .head { background: #666; color: #fff; display: flex; gap: 16px; padding: 12px; }
+  .head div { flex: 1; font-size: 13px; }
+  .head input { display: block; width: 100%; margin-top: 4px; background: #cfe3ff; border: 0; padding: 4px; }
+  .row { display: flex; flex-wrap: wrap; padding: 12px; gap: 12px; }
+  .col-md-6 { flex: 1 1 45%; }
+  .mode-input { border: 1px solid #ddd; padding: 10px; font-size: 13px; }
+  .radio-inputs { display: flex; gap: 6px; margin-top: 8px; }
+  .radio-inputs .radio input { display: none; }
+  .radio-inputs .radio .name { display: block; margin: 0; padding: 4px 10px; background: #f2f2f2; border-radius: 4px; cursor: pointer; font-size: 12px; }
+  .radio-inputs .radio input:checked + .name { background: #3b5bdb; color: #fff; }
+  textarea { width: 100%; }
+</style></head>
+<body>
+<form id="feedback" onsubmit="return false">
+  <div class="course" data-course="CSP473">
+    <div class="head">
+      <div>Faculty Name<input readonly value="Kanderp Narayan Mishra"></div>
+      <div>Course Code<input readonly value="CSP473"></div>
+      <div>Course Name<input readonly value="Machine Learning Lab"></div>
+    </div>
+    <div class="row"></div>
+  </div>
+  <div class="course" data-course="CSE062">
+    <div class="head">
+      <div>Faculty Name<input readonly value="Bal Saraswat"></div>
+      <div>Course Code<input readonly value="CSE062"></div>
+      <div>Course Name<input readonly value="Mobile Computing"></div>
+    </div>
+    <div class="row"></div>
+  </div>
+  <p>Any other comments<br><textarea name="comments" rows="3"></textarea></p>
+  <button type="button" id="submit">Submit feedback</button>
+</form>
+<script>
+  const QUESTIONS = ['The syllabus for this course was adequately covered.', 'The teacher was well-prepared for each class.', 'The overall quality of the teaching-learning process in this course is very good'];
+  const NAMES = ['Strongly Disagree', 'Disagree', 'Neutral', 'Agree', 'Strongly Agree'];
+  for (const course of document.querySelectorAll('.course')) {
+    const code = course.dataset.course;
+    course.querySelector('.row').innerHTML = QUESTIONS.map((q, qi) => `
+      <div class="col-md-6"><div class="mode-input">
+        <span><b>${qi + 1}: </b>${q}<em>*</em></span>
+        <div class="radiobehav"><div class="radio-inputs">
+          ${NAMES.map((name, i) => `<label class="radio"><input type="radio" id="ques_${code}_${qi + 1}_${i + 1}" name="answer[${code}][0009005][${qi + 1}]" value="${i + 1}"${i ? '' : ' required'}><p class="name">${name}</p></label>`).join('')}
+        </div></div>
+      </div></div>`).join('');
+  }
+  const answers = () => {
+    const out = {};
+    for (const input of document.querySelectorAll('input[type=radio]:checked')) out[input.name] = input.value;
+    return { answers: out, comments: document.querySelector('textarea').value };
+  };
+  // A draft is saved on every change; only Submit sends the form
+  let timer;
+  document.getElementById('feedback').addEventListener('change', () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fetch('/api/feedback-cards/draft', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(answers()) }), 200);
+  });
+  document.getElementById('submit').addEventListener('click', () => {
+    fetch('/api/feedback-cards/submit', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(answers()) });
+  });
+</script>
+</body></html>

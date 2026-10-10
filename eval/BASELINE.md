@@ -2,6 +2,17 @@
 
 All runs are live: real model, real extension, real Chromium. A run passes only if the right requests reached the test server **and** the agent finished cleanly.
 
+## Styled rating buttons: hidden radios inside their labels (2026-10-10)
+
+A real university feedback form stuck Groq's Qwen in a loop (searching for "Strongly Agree" again and again) and ran DeepSeek flash out of output tokens. Each rating is a `<label>` around a radio that CSS hides, with the option's text beside it; the question is a plain `<span>`; every course repeats the same questions. The snapshot skipped the hidden radios and didn't list labels, so the model saw nothing it could click. Now a hidden radio or checkbox with a visible label is listed through that label (described as the radio: text, value, checked), and a radio group that nothing names gets the text next to its options as its question. Separately, an answer cut off by the token cap before any text is asked again with twice the room (DeepSeek thinks inside the cap).
+
+The new `feedback-cards` task copies that markup: two courses, the same three questions each, a different answer per course, a draft saved on every change, and submitting not allowed.
+
+| `feedback-cards` | Mock | Live, Groq `qwen/qwen3.8-27b` | Live, `deepseek-flash` |
+|---|---|---|---|
+| Before | 0/1: no "Agree" radio in the snapshot | not run | not run |
+| After | 1/1 | 2/2 (2 calls each) | 2/2 (2 calls each) |
+
 ## Forms named the way a screen reader names them (2026-10-07)
 
 Tabi failed a real 60-question Google Form. Google Forms draws every control as a div with an ARIA role, gives an option only its own answer ("Sydney", "3"), and ties it to its question with `aria-labelledby`, which the snapshot ignored. Text boxes came out with no label at all, and the same answer in two questions looked identical. The snapshot now names a control by `aria-labelledby`, then `aria-label`, then its `<label>`, and lists controls under a `── question ──` line from the radio group, checkbox list, fieldset or card around them. `find` searches those lines too. Date and time inputs are set in their fixed format instead of typed through the locale.

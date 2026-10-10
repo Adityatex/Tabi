@@ -400,7 +400,51 @@ function groupOf(el: Element, label: string): string | undefined {
     // Skip names that only repeat the control's own (a field named by its question)
     if (name && name.length < 300 && !names.includes(name) && !(label && name.startsWith(label.replace(/…$/, '')))) names.unshift(name);
   }
+  // Nothing names it, but its question is written next to it (plain divs and spans)
+  if (!names.length && isChoice(el)) {
+    const question = looseQuestion(el as HTMLInputElement);
+    if (question && !(label && question.startsWith(label))) names.push(question);
+  }
   return names.length ? truncate(names.join(' › '), GROUP_CHARS) : undefined;
+}
+
+const isChoice = (el: Element) => el.tagName === 'INPUT' && /^(radio|checkbox)$/i.test((el as HTMLInputElement).type);
+
+/** Question text per radio group name, for one snapshot. */
+let looseQuestions = new Map<string, string>();
+
+/**
+ * The question of a radio group (or a lone checkbox) that nothing names: the
+ * text in the smallest container around all its options, without the
+ * options' own labels, e.g. "2: The teacher was well-prepared for each class."
+ * Gives up rather than reach a container holding other questions too.
+ */
+function looseQuestion(el: HTMLInputElement): string {
+  const doc = el.ownerDocument;
+  const key = el.name ? `${el.type}:${el.name}` : '';
+  if (key && looseQuestions.has(key)) return looseQuestions.get(key)!;
+  const peers = el.name && el.type.toLowerCase() === 'radio'
+    ? Array.from((el.form ?? doc).querySelectorAll<HTMLInputElement>(`input[type="radio"][name="${CSS.escape(el.name)}"]`))
+    : [el];
+  // Longest first: "Disagree" must not split "Strongly Disagree"
+  const options = peers.map((p) => labelText(p)).filter(Boolean).sort((a, b) => b.length - a.length);
+  let box: Element | null = el.parentElement;
+  while (box && !peers.every((p) => box!.contains(p))) box = box.parentElement;
+  let question = '';
+  for (let depth = 0; box && box !== doc.body && depth < 5; depth++, box = box.parentElement) {
+    // Other questions' options in here: it's past this question's own box
+    const others = Array.from(box.querySelectorAll<HTMLInputElement>('input[type="radio"], input[type="checkbox"]')).some((i) => !peers.includes(i));
+    if (others) break;
+    let text = (box as HTMLElement).innerText ?? box.textContent ?? '';
+    for (const option of options) text = text.split(option).join(' ');
+    text = text.replace(/\s+/g, ' ').trim();
+    if (text.length >= 3) {
+      question = text.length > 300 ? '' : text;
+      break;
+    }
+  }
+  if (key) looseQuestions.set(key, question);
+  return question;
 }
 
 export interface SnapshotElement {
@@ -641,6 +685,7 @@ export function collectLocalElements(): SnapshotParts {
   registry.clear();
   remoteBoxes.clear();
   containers = new WeakMap();
+  looseQuestions = new Map();
 
   const found: Found[] = [];
   const opaqueFrames: OpaqueFrame[] = [];
@@ -648,15 +693,27 @@ export function collectLocalElements(): SnapshotParts {
 
   const elements: SnapshotElement[] = [];
   const distance = new Map<number, number>();
+  const taken = new Set<Element>();
   for (const { el, frame, frameTop } of found) {
-    if (!isVisible(el)) continue;
+    // A styled radio or checkbox: the input is hidden and its label is what people
+    // click. The label stands in for it, described as the input (text, value, checked).
+    const target = isVisible(el) ? el : labelStandIn(el);
+    if (!target || taken.has(target)) continue;
+    taken.add(target);
     const id = elements.length;
-    registry.set(id, el);
-    el.setAttribute('data-tabi-id', String(id));
+    registry.set(id, target);
+    target.setAttribute('data-tabi-id', String(id));
     elements.push(describe(el, id, frame));
-    distance.set(id, viewportDistance(el, frameTop));
+    distance.set(id, viewportDistance(target, frameTop));
   }
   return { elements, distance, opaqueFrames, remoteTexts: [] };
+}
+
+/** A hidden radio or checkbox's visible label, which selects it when clicked; null for anything else. */
+function labelStandIn(el: Element): Element | null {
+  if (!isChoice(el)) return null;
+  for (const label of Array.from((el as HTMLInputElement).labels ?? [])) if (isVisible(label)) return label;
+  return null;
 }
 
 /** Add a cross-origin frame's elements under new IDs that forward to that frame. */

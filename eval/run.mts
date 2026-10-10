@@ -258,12 +258,13 @@ function mockPlanner(plan: (MockStep | MockStep[])[]) {
     const [historyPart, snapshotPart = ''] = beforeQuestion.split('CURRENT PAGE DOM SNAPSHOT:');
     const visible = `${snapshotPart}\n${historyPart}`;
     /** An element the model can see, under a heading matching `group` if given (the "── … ──" line above it, or a find result's "(under …)"). */
-    const findId = (target: RegExp, group?: RegExp) => {
+    const findId = (target: RegExp, group?: RegExp, nth = 0) => {
       let heading = '';
+      let seen = 0;
       for (const m of visible.matchAll(/^(── .* ──)$|\[(\d+)\] (<[^|\n]*)/gm)) {
         if (m[1]) { heading = m[1].slice(3, -3); continue; }
         const under = /\(under "(.*)"\)\s*$/.exec(m[3])?.[1] ?? heading;
-        if (target.test(m[3]) && (!group || group.test(under))) return Number(m[2]);
+        if (target.test(m[3]) && (!group || group.test(under)) && seen++ === nth) return Number(m[2]);
       }
       return undefined;
     };
@@ -271,9 +272,9 @@ function mockPlanner(plan: (MockStep | MockStep[])[]) {
     const resolve = (s: MockStep): object | string => {
       if (s.action === 'done' || s.action === 'find' || s.action === 'extract' || s.action === 'run_code') return s;
       if (s.action === 'press_key') return { action: 'press_key', key: s.key, elementId: s.target ? findId(s.target) : undefined };
-      const elementId = findId(s.target, s.group);
+      const elementId = findId(s.target, s.group, 'nth' in s ? s.nth : 0);
       if (elementId === undefined) return `MOCK: no element matching ${s.target}${s.group ? ` under ${s.group}` : ''} in snapshot`;
-      const { target: _target, group: _group, ...rest } = s;
+      const { target: _target, group: _group, nth: _nth, ...rest } = s as typeof s & { nth?: number };
       return { ...rest, elementId };
     };
 

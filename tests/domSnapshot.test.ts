@@ -248,3 +248,40 @@ describe('labels and groups, the way a screen reader names things', () => {
     expect(findElements('add to cart kite 9').map((e) => e.id)).toEqual([1]);
   });
 });
+
+describe('styled rating buttons: hidden radios inside their labels', () => {
+  const question = (n: number, text: string, course: string) => `
+    <div class="mode-input">
+      <span><b>${n}: </b>${text}<em>*</em></span>
+      <div class="radiobehav"><div class="radio-inputs">
+        ${['Strongly Disagree', 'Disagree', 'Neutral', 'Agree', 'Strongly Agree'].map((name, i) => `
+        <label class="radio">
+          <input type="radio" style="display:none" name="answer[${course}][9005][${n}]" value="${i + 1}">
+          <p class="name">${name}</p>
+        </label>`).join('')}
+      </div></div>
+    </div>`;
+
+  it('lists each visible label in place of its hidden radio, under its question', () => {
+    document.body.innerHTML = question(1, 'The syllabus was adequately covered.', 'CSE062') + question(2, 'The teacher was well-prepared for each class.', 'CSE062');
+
+    const { text, elements } = createDOMSnapshot();
+
+    expect(elements).toHaveLength(10);
+    expect(elements.slice(0, 5).map((e) => `${e.tag} ${e.type} ${e.label} ${e.value}`)).toEqual([
+      'input radio Strongly Disagree 1', 'input radio Disagree 2', 'input radio Neutral 3', 'input radio Agree 4', 'input radio Strongly Agree 5',
+    ]);
+    expect(elements[0].group).toBe('1: The syllabus was adequately covered.*');
+    expect(elements[9].group).toBe('2: The teacher was well-prepared for each class.*');
+    // The label is what gets clicked
+    expect(document.querySelector('[data-tabi-id="4"]')!.tagName).toBe('LABEL');
+    expect(text).toContain('── 2: The teacher was well-prepared for each class.* ──');
+  });
+
+  it('still lists a visible radio itself, and never twice', () => {
+    document.body.innerHTML = '<label><input type="radio" name="a" value="y"> Yes</label><label><input type="radio" name="a" value="n"> No</label>';
+    const { elements } = createDOMSnapshot();
+    expect(elements.map((e) => e.label)).toEqual(['Yes', 'No']);
+    expect(document.querySelector('[data-tabi-id="0"]')!.tagName).toBe('INPUT');
+  });
+});
