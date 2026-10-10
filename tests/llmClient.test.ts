@@ -112,9 +112,11 @@ describe('empty responses', () => {
   const config = { provider: 'openai' as const, label: 'OpenAI', baseUrl: 'https://api.test/v1', apiKey: 'k', model: 'm' };
   afterEach(() => vi.unstubAllGlobals());
 
-  it('says when a reasoning model used up its token budget without answering', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ choices: [{ message: { content: '' }, finish_reason: 'length' }] }), { status: 200 })));
+  it('says when a reasoning model used up its token budget without answering, after two tries with more room', async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ choices: [{ message: { content: '' }, finish_reason: 'length' }] }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
     await expect(callLLM([], config)).resolves.toMatch(/used its entire token budget/);
+    expect(fetchMock.mock.calls.map((c: any) => JSON.parse(c[1].body).max_tokens)).toEqual([2048, 4096, 8192]);
   });
 });
 
@@ -196,5 +198,27 @@ describe('listModels: Gemini and Mistral lists', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify([{ error: { code: 400, message: 'API key not valid' } }]), { status: 400 })));
     await expect(listModels({ provider: 'gemini', label: 'Gemini', baseUrl: 'https://x.test', apiKey: 'k', model: '' }))
       .rejects.toThrow('Gemini could not list models (400): API key not valid');
+  });
+});
+
+describe('a model that thinks through its whole budget', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('is asked again with twice the room, up to a ceiling, and the room is remembered', async () => {
+    const config: LLMConfig = { provider: 'deepseek', label: 'DeepSeek', baseUrl: 'https://think.test/v1', apiKey: 'k', model: 'thinker' };
+    const caps: number[] = [];
+    const fetchMock = vi.fn(async (_url: string, init: any) => {
+      const cap = JSON.parse(init.body).max_tokens;
+      caps.push(cap);
+      const choice = cap < 8192
+        ? { message: { content: '' }, finish_reason: 'length' }
+        : { message: { content: '{"actions":[]}' }, finish_reason: 'stop' };
+      return new Response(JSON.stringify({ choices: [choice] }), { headers: { 'content-type': 'application/json' } });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    expect(await callLLM([{ role: 'user', content: 'x' }], config, { maxTokens: 4096 })).toBe('{"actions":[]}');
+    expect(caps).toEqual([4096, 8192]);
+    await callLLM([{ role: 'user', content: 'x' }], config, { maxTokens: 4096 });
+    expect(caps.at(-1)).toBe(8192); // remembered: no wasted first try
   });
 });

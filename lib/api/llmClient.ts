@@ -174,6 +174,8 @@ export interface ParamFixes {
 
 /** The response cap is never reduced below this. */
 const MIN_MAX_TOKENS = 256;
+/** The response cap is raised up to this when a model thinks through its whole budget and answers nothing. */
+const MAX_THINKING_TOKENS = 16384;
 
 // Learned per baseUrl + model, so only the first request pays for a rejected field
 const learnedFixes = new Map<string, ParamFixes>();
@@ -313,6 +315,7 @@ export async function callLLM(messages: ChatMessage[], config: LLMConfig, opts: 
   const fixKey = `${config.baseUrl}|${config.model}`;
   let fixes: ParamFixes = learnedFixes.get(fixKey) ?? {};
   let fixesTried = 0;
+  let raisedForLength = 0;
   const failFast = opts.failFast ?? config.failFast ?? false;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
@@ -393,7 +396,16 @@ export async function callLLM(messages: ChatMessage[], config: LLMConfig, opts: 
       if (calls?.length && opts.toolsToText) return opts.toolsToText(calls);
       const content = choice?.message?.content?.trim();
       if (content) return content;
-      // Reasoning models can spend the whole token budget thinking and answer nothing
+      // Reasoning models can spend the whole token budget thinking and answer nothing:
+      // ask again with more room (remembered for this model), up to a ceiling
+      const cap = fixes.maxTokens ?? opts.maxTokens ?? 2048;
+      if (choice?.finish_reason === 'length' && cap < MAX_THINKING_TOKENS && raisedForLength < 2) {
+        fixes = { ...fixes, maxTokens: Math.min(cap * 2, MAX_THINKING_TOKENS) };
+        learnedFixes.set(fixKey, fixes);
+        raisedForLength++;
+        attempt--;
+        continue;
+      }
       return choice?.finish_reason === 'length'
         ? '(empty response: the model used its entire token budget before answering)'
         : 'No response received.';
