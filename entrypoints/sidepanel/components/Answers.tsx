@@ -1,8 +1,8 @@
 // Questions about the page and their answers, and the page commands
-// (summarize, explain, autofill). Answering only reads the page: it never
-// clicks, and says so.
+// /summarize and /explain. Answering only reads the page: it never clicks,
+// and says so.
 import { useEffect, useRef, useState } from 'react';
-import { Locate, MessageCircle, Zap } from 'lucide-react';
+import { Locate, MessageCircle } from 'lucide-react';
 import TabiMark from '@/components/TabiMark';
 import { copyCodeOnClick, renderMarkdown } from '@/lib/utils/markdown';
 import { splitSources, type Source } from '@/lib/panel/view';
@@ -15,8 +15,6 @@ export interface Answer {
   error?: string;
   /** A question that could be done instead of answered. */
   canDo?: boolean;
-  /** Not from the page: autofill fills it in, so it doesn't say "nothing clicked". */
-  acted?: boolean;
 }
 
 interface Props {
@@ -71,9 +69,9 @@ export default function Answers({ answers, onDoInstead, onShowSource }: Props) {
             <>
               <div className="flex items-center gap-2 text-[12px] text-muted flex-wrap">
                 <span className="flex items-center gap-[5px] h-[22px] px-2 rounded-full bg-accent-soft text-accent font-semibold text-[11.5px]">
-                  {a.acted ? <Zap size={12} aria-hidden /> : <MessageCircle size={12} aria-hidden />}{a.acted ? 'Done' : 'Answered'}
+                  <MessageCircle size={12} aria-hidden />Answered
                 </span>
-                {!a.acted && 'Read this page only · nothing clicked'}
+                Read this page only · nothing clicked
                 <div className="flex-1" />
                 {a.canDo && <button type="button" className="font-medium text-accent" onClick={() => onDoInstead(a.question)}>Do it instead</button>}
               </div>

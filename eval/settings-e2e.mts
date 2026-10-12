@@ -116,6 +116,37 @@ async function main(): Promise<void> {
       assigned === 'Alt+T' && shown === 'Alt+T' && footer.includes('Alt+T') && !footer.includes('Ctrl+G'), `browser: "${assigned}", Settings: "${shown}"`);
     const askKey = await settings.getByTestId('ask-shortcut').innerText({ timeout: 5_000 }).catch(() => '');
     check('the ask-about-selection shortcut is Alt+J, and Settings shows it', askKey === 'Alt+J', askKey);
+
+    // 7. The autofill profile: starts empty, takes details of the user's own, keeps their order
+    await settings.getByRole('link', { name: 'Autofill profile' }).click();
+    const rows = settings.getByTestId('profile-row');
+    await rows.first().waitFor({ timeout: 5_000 });
+    const answers = await rows.locator('textarea').evaluateAll((boxes) => boxes.map((b) => (b as HTMLTextAreaElement).value));
+    check('a new profile has the common details, all empty (no made-up person)', answers.length === 8 && answers.every((a) => a === ''), JSON.stringify(answers));
+    await settings.getByRole('textbox', { name: 'Mobile number' }).fill('+91 98765 43210');
+    await settings.getByRole('button', { name: 'Date of birth' }).click();
+    await settings.getByRole('textbox', { name: 'Date of birth' }).fill('15 March 2004');
+    await settings.getByRole('button', { name: 'Add a detail' }).click();
+    await rows.last().getByRole('textbox', { name: 'Detail' }).fill('Roll number');
+    await settings.getByRole('textbox', { name: 'Roll number' }).fill('22CSE1043');
+    await settings.getByRole('button', { name: 'Move Roll number up' }).click();
+    await settings.getByRole('button', { name: 'Remove Country' }).click();
+    await settings.getByRole('button', { name: 'Add a detail' }).click();
+    await rows.last().getByRole('textbox', { name: 'Answer' }).fill('an answer with no name');
+    await settings.getByRole('button', { name: 'Save profile' }).click();
+    const refused = await settings.getByText('Give every answer a name').isVisible({ timeout: 3_000 }).catch(() => false);
+    await rows.last().getByRole('button', { name: /^Remove/ }).click();
+    await settings.getByRole('button', { name: 'Save profile' }).click();
+    await settings.getByText('Saved on this device.').waitFor({ timeout: 5_000 });
+    const profile: any[] = (await worker.evaluate(() => chrome.storage.local.get('tabi_profile'))).tabi_profile ?? [];
+    const labels = profile.map((f) => f.label);
+    check('an answer without a name is refused', refused);
+    check('details are added, moved, removed and saved in order',
+      labels.join('|') === 'Full name|Email|Mobile number|Street address|City|State / Province|Postal code|Roll number|Date of birth'
+      && profile.find((f) => f.label === 'Roll number')?.value === '22CSE1043' && profile.find((f) => f.label === 'Mobile number')?.value === '+91 98765 43210',
+      JSON.stringify(profile));
+    await settings.reload();
+    check('the profile is there after a reload', await settings.getByRole('textbox', { name: 'Roll number' }).inputValue({ timeout: 5_000 }).catch(() => '') === '22CSE1043');
   } finally {
     await context.close().catch(() => {});
     await fixtures.close();

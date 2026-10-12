@@ -37,6 +37,8 @@ const EMPTY: TabState = { show: 'idle', answers: [], offerClosed: [], save: {} }
 const live = (run: RunView | undefined) => !!run && (run.status === 'running' || run.status === 'paused' || run.status === 'queued');
 const newId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 type Command = 'summarize' | 'explain' | 'autofill';
+/** /autofill's task; words after it ("/autofill skip the address") are added. */
+const AUTOFILL_GOAL = 'Fill in the form on this page with my details. Don’t submit it.';
 const COMMAND_TITLE: Record<Command, string> = { summarize: 'Summarize this page', explain: 'Explain the selection', autofill: 'Fill in this form from my profile' };
 
 export default function App() {
@@ -103,18 +105,13 @@ export default function App() {
   const runCommand = async (command: Command, text?: string) => {
     if (tabId === undefined) return;
     const id = newId();
-    addAnswer(tabId, { id, question: COMMAND_TITLE[command], acted: command === 'autofill' });
+    // Autofill is a task: the agent matches the form's questions to the profile by meaning, and fills any kind of field
+    if (command === 'autofill') {
+      await startTask(`${AUTOFILL_GOAL}${text ? ` ${text}` : ''}`, { autofill: true });
+      return;
+    }
+    addAnswer(tabId, { id, question: COMMAND_TITLE[command] });
     try {
-      if (command === 'autofill') {
-        const res = await askPage<{ empty?: boolean; filled?: number; skipped?: number; error?: string }>(tabId, 'AUTOFILL');
-        if (res?.error) throw new Error(res.error);
-        finishAnswer(tabId, id, {
-          answer: res?.empty ? 'Your autofill profile is empty, so nothing was filled. Add your details in Settings › Autofill profile.'
-            : res?.filled ? `Filled ${res.filled} field${res.filled === 1 ? '' : 's'} from your profile. Check them before you send the form.`
-            : 'No fields on this page matched your profile.',
-        });
-        return;
-      }
       if (command === 'explain') {
         const selection = text || (await askPage<{ text: string }>(tabId, 'PAGE_SELECTION'))?.text;
         if (!selection) throw new Error('Select some text on the page first, then choose Explain selection.');
@@ -170,9 +167,9 @@ export default function App() {
   // ---- Tasks
   const [notice, setNotice] = useState<string | null>(null);
   /** Run a task: `goal` by the agent, with `skill` in its prompt if the user chose one, or `workflow` replayed. */
-  const startTask = async (goal: string, opts: { workflow?: string; skill?: string } = {}) => {
+  const startTask = async (goal: string, opts: { workflow?: string; skill?: string; autofill?: boolean } = {}) => {
     if (tabId === undefined) return;
-    const skill = opts.skill ? { skill: opts.skill } : {};
+    const skill = { ...(opts.skill ? { skill: opts.skill } : {}), ...(opts.autofill ? { autofill: true } : {}) };
     if (background) {
       const res = await send('START_BACKGROUND_TASK', { tabId, ...(opts.workflow ? { workflow: opts.workflow } : { goal, ...skill }) });
       if (!res.success) {

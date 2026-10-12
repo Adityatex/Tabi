@@ -11,7 +11,7 @@ export type StepStatus = 'ok' | 'fail' | 'skip' | 'run' | 'wait';
 /** Which icon a step row shows. */
 export type StepIcon =
   | 'click' | 'type' | 'select' | 'navigate' | 'scroll' | 'key' | 'read' | 'find' | 'wait'
-  | 'note' | 'extract' | 'code' | 'skill' | 'replay';
+  | 'note' | 'extract' | 'code' | 'skill' | 'profile' | 'replay';
 
 export interface StepView {
   /** Step number, from 1. */
@@ -43,7 +43,7 @@ export function currentPlanItem(plan: string[]): string | undefined {
 const ICON: Record<AgentAction['action'], StepIcon> = {
   click: 'click', type: 'type', clear_and_type: 'type', select: 'select', navigate: 'navigate', scroll: 'scroll',
   press_key: 'key', read: 'read', find: 'find', wait: 'wait', note: 'note', extract: 'extract', run_code: 'code',
-  use_skill: 'skill', done: 'note',
+  use_skill: 'skill', use_profile: 'profile', done: 'note',
 };
 
 /** Curly quotes around UI text, cut short if long. */
@@ -90,6 +90,7 @@ function actionWords(action: AgentAction, label: string, secret = false): string
     case 'extract': return action.fields?.length ? `Collected ${action.fields.slice(0, 4).join(', ')}${action.fields.length > 4 ? '…' : ''}` : 'Collected data from the page';
     case 'run_code': return 'Ran its own read-only code on the page';
     case 'use_skill': return `Used the skill ${quote(action.text ?? '')}`;
+    case 'use_profile': return 'Read your autofill profile';
     case 'done': return 'Finished';
   }
 }
@@ -159,6 +160,7 @@ function resultWords(action: AgentAction, result: string, label: string, secret 
     if (action.action === 'run_code') return /returned nothing/.test(result) ? 'It returned nothing' : 'It returned data';
     if (action.action === 'extract') return cleanResult(result, label).replace(/:.*$/, '');
     if (action.action === 'use_skill') return 'Its instructions are in use';
+    if (action.action === 'use_profile') return 'Your details are in use';
     if (action.action === 'note') return quote(action.text ?? '', 80);
     // A warning says something the user should know; otherwise the action says it all
     if (warning && !secret) return cleanResult(result, label);

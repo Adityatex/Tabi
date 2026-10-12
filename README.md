@@ -65,7 +65,7 @@ Type `/` for your shortcuts, workflows, skills and the built-in commands:
 
 - `/summarize`: summarize the page (also on the right-click menu).
 - `/explain`: explain the selected text.
-- `/autofill`: fill the page's form from your profile (Settings › Autofill profile).
+- `/autofill`: fill in the page's form from your profile (Settings › Autofill profile). Tabi matches each question to your details by meaning, so "Contact number" gets your mobile number and a guardian's phone stays empty. Add any details you like (roll number, LinkedIn, a standard answer), leave anything it can't answer for you to fill in, and it never submits the form. Asked in words ("fill in this application with my details"), the agent loads your profile when it needs it.
 
 ### Routines
 

@@ -2,6 +2,18 @@
 
 All runs are live: real model, real extension, real Chromium. A run passes only if the right requests reached the test server **and** the agent finished cleanly.
 
+## Autofill by meaning (2026-10-12)
+
+Autofill matched fields with fixed patterns (`/phone|tel|mobile/`), filled only plain text boxes and dropdowns, and, with nothing saved, filled in a made-up "John Doe". Now the profile is a list of details the user names and orders. `/autofill` is an agent task with those details in its prompt: the model matches each question to a detail by meaning, and the agent fills every kind of field. Other tasks see only the details' names, and load the answers with `use_profile` when a form needs them.
+
+The `autofill-application` task (`/autofill`) and `autofill-asked` ("fill in this hostel application with my details") use a form worded unlike the profile ("Contact number", "E-mail ID", "Enrollment No." for a "Roll number" detail), with a date to convert ("15 March 2004" into a date field), a guardian's phone, a yes/no question and an essay the profile can't answer, and a submit button. A pass needs every matching field right, the rest empty, and nothing submitted.
+
+| | Mock | Live, Groq `qwen/qwen3.8-27b` | Live, `deepseek-flash` |
+|---|---|---|---|
+| `autofill-application` | 1/1 | 3/3 (2 calls) | 1/1 |
+| `autofill-asked`, first try | 1/1 | 0/3: matched every detail, but also answered the yes/no question and wrote the essay | not run |
+| `autofill-asked`, after telling it those are the user's to answer and to list them | 1/1 | 3/3 (3-4 calls) | 1/1 |
+
 ## Code editors: code goes in exactly as written (2026-10-12)
 
 On LeetCode, a solution typed into the Monaco editor came out staircased: long text went in as typed input, and the editor auto-indented every new line. The check then read the editor's hidden `<textarea>`, which is always empty, called the typing a failure and typed the code a second time. Now text for a code editor (Monaco, CodeMirror, Ace) is set through the editor's own API in the page, and read back the same way. When the page doesn't expose the editor, Tabi selects everything and pastes the code; editors don't auto-indent a paste. The snapshot marks the input as `[code editor]`.

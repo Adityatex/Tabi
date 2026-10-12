@@ -41,7 +41,7 @@ describe('tool calls → response', () => {
     expect(AGENT_TOOLS.map((t) => t.function.name)).toEqual([NEXT_ACTIONS_TOOL]);
     const item = (AGENT_TOOLS[0].function.parameters as any).properties.actions.items;
     expect([...item.properties.action.enum].sort()).toEqual(
-      ['clear_and_type', 'click', 'done', 'extract', 'find', 'navigate', 'note', 'press_key', 'read', 'run_code', 'scroll', 'select', 'type', 'use_skill', 'wait'],
+      ['clear_and_type', 'click', 'done', 'extract', 'find', 'navigate', 'note', 'press_key', 'read', 'run_code', 'scroll', 'select', 'type', 'use_profile', 'use_skill', 'wait'],
     );
   });
 

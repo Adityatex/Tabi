@@ -30,6 +30,7 @@ import {
 } from '@/lib/schedules/scheduler';
 import { loadSkills, saveSkill, deleteSkill, type KeyValueStorage } from '@/lib/skills/store';
 import { writeSkillFromRun } from '@/lib/skills/writer';
+import { filledFields, loadProfile } from '@/lib/automation/profile';
 import { createHandlers } from '@/lib/mcp/handlers';
 import { cueOf } from '@/lib/dom/pageCue';
 import { Attention, toolbarIconPaths, type Scheme } from '@/lib/utils/toolbarIcon';
@@ -274,7 +275,7 @@ export default defineBackground(() => {
     const run = async () => {
       holdKeepAlive();
       try {
-        return await startRun(runnerDeps, tabId, goal, options);
+        return await startRun(runnerDeps, tabId, goal, { ...options, profile: options.profile ?? await loadProfile() });
       } finally {
         releaseKeepAlive();
       }
@@ -348,6 +349,14 @@ export default defineBackground(() => {
     const name = slugify(String(chosen));
     if (!skills.some((s) => s.name === name)) throw new Error(`There is no skill named "${chosen}"`);
     return { skills, useSkills: [name] };
+  }
+
+  /** An autofill task (the side panel's /autofill) has the profile's answers from the start, so it needs some. */
+  async function autofillOptions(autofill: unknown): Promise<Pick<RunOptions, 'autofill' | 'profile'>> {
+    if (autofill !== true) return {};
+    const profile = await loadProfile();
+    if (filledFields(profile).length === 0) throw new Error('Your autofill profile is empty. Add your details in Settings › Autofill profile, then try again.');
+    return { autofill: true, profile };
   }
 
   function runAgent(tabId: number, goal: string, options: RunOptions): void {
@@ -729,7 +738,8 @@ export default defineBackground(() => {
             const prefs = await loadPrefs();
             runAgent(tabId, goal, {
               checkpoint: prefs.stepCheckpoint, split: hasExecutor(await loadSettings()), screenshots: prefs.screenshots,
-              ...await skillsFor(payload?.skill), customCode: prefs.customCode, confirm: prefs.confirmRisky, critic: prefs.critic, source: 'panel',
+              ...await skillsFor(payload?.skill), ...await autofillOptions(payload?.autofill),
+              customCode: prefs.customCode, confirm: prefs.confirmRisky, critic: prefs.critic, source: 'panel',
             });
             sendResponse({ success: true });
             break;
@@ -752,6 +762,7 @@ export default defineBackground(() => {
               await requireConfig();
             }
             const skills = await skillsFor(workflow ? undefined : payload?.skill);
+            const autofill = workflow ? {} : await autofillOptions(payload?.autofill);
             const tab = await chrome.tabs.create({
               url: workflow?.startUrl ?? url, active: false,
               ...(from ? { windowId: from.windowId, index: from.index + 1 } : {}),
@@ -761,7 +772,7 @@ export default defineBackground(() => {
             const prefs = await loadPrefs();
             runAgent(tab.id, goal, {
               checkpoint: prefs.stepCheckpoint, split: hasExecutor(await loadSettings()), screenshots: prefs.screenshots,
-              ...skills, customCode: prefs.customCode, confirm: prefs.confirmRisky, critic: prefs.critic, workflow, source: 'background',
+              ...skills, ...autofill, customCode: prefs.customCode, confirm: prefs.confirmRisky, critic: prefs.critic, workflow, source: 'background',
             });
             sendResponse({ success: true, data: { tabId: tab.id } });
             break;

@@ -8,6 +8,7 @@ import type { AgentAction } from '@/lib/agent/actionExecutor';
 import { parseAgentResponse } from '@/lib/agent/parseAction';
 import type { ScreenshotMode } from '@/lib/agent/prefs';
 import { pickSkills, slugify, type Skill } from '@/lib/skills/skill';
+import { filledFields, profileText, type ProfileField } from '@/lib/automation/profile';
 import { checkCode, wrapCode, formatCodeResult } from '@/lib/agent/customCode';
 import { canCommit, riskOf, labelOf, type Risk } from '@/lib/agent/confirm';
 import { criticStep, sensitiveKind, siteOf, type CriticStep, type Verdict } from '@/lib/agent/critic';
@@ -181,6 +182,9 @@ interface Run extends RunView {
   /** The skills the user chose for this task (/skill-name). */
   chosenSkills: string[];
   customCode: boolean;
+  /** The user's autofill profile, and whether its answers are in the prompt (use_profile, or an autofill task). */
+  profile: ProfileField[];
+  profileLoaded: boolean;
   /** The model's summary when it finished. */
   summary?: string;
   /** What this run did, step by step, for saving it as a workflow. */
@@ -217,6 +221,10 @@ export interface RunOptions {
   useSkills?: string[];
   /** The user turned on run_code (lib/agent/customCode.ts). */
   customCode?: boolean;
+  /** The user's autofill profile: its labels are listed for the model, and its answers loaded with use_profile. */
+  profile?: ProfileField[];
+  /** An autofill task: the profile's answers are in the prompt from the first step. */
+  autofill?: boolean;
   /** Replay this saved workflow (no model calls), letting the agent take over if a step fails. */
   workflow?: Workflow;
   /**
@@ -237,6 +245,23 @@ export interface RunOptions {
 
 /** A paused run's answer: carry on (allowing the action, if one was asked about), don't allow it, or stop. */
 type Answer = 'continue' | 'decline' | 'stop';
+
+/**
+ * The profile part of the prompt, under the goal: the user's details when
+ * loaded; otherwise only their labels, so they aren't sent with every task.
+ */
+export function profileSection(profile: ProfileField[], loaded: boolean): string {
+  const filled = filledFields(profile);
+  if (filled.length === 0) return '';
+  if (loaded) {
+    return "\n\n--- MY DETAILS (the user's autofill profile; use them where a form asks for them) ---\n"
+      + 'Match each question to the detail it asks for by meaning, not by the exact words ("Contact number" is a mobile number). '
+      + "Leave a field empty when none of these fits it; never make a detail up. A detail about someone else (a parent's phone, a referee's email) is not the user's. "
+      + "Questions these don't answer (a choice, an opinion, an essay) are the user's to answer, unless their request says how: leave them, and list them in your summary.\n"
+      + profileText(filled);
+  }
+  return `\n\n--- MY DETAILS (load them with use_profile if the task needs them) ---\n${filled.map((f) => f.label).join(', ')}`;
+}
 
 /** Most skills listed by name for use_skill (the rest are too unlikely to matter). */
 const MAX_LISTED_SKILLS = 20;
@@ -855,6 +880,11 @@ async function targetOf(deps: RunnerDeps, run: Run, action: AgentAction, typing:
   return null;
 }
 
+/** What the user gave the task: their request, and their profile's answers once the model has them. */
+function givenByUser(run: Run): string {
+  return run.profileLoaded ? `${run.goal}\n${filledFields(run.profile).map((f) => f.value).join('\n')}` : run.goal;
+}
+
 /** An action in the user's words, for asking about it. */
 function forUser(action: AgentAction, target: string | null, desc: string): string {
   const label = target ? labelOf(target) : '';
@@ -947,7 +977,7 @@ async function guard(deps: RunnerDeps, run: Run, action: AgentAction, pageUrl: s
     if (status === 'allowed' || (!url && urlStatus(pageUrl, rules).status === 'allowed')) critic = undefined;
   }
 
-  const step = critic ? criticStep(action, { goal: run.goal, pageUrl, sites: run.sites, target, confirm: run.confirm }) : null;
+  const step = critic ? criticStep(action, { goal: givenByUser(run), pageUrl, sites: run.sites, target, confirm: run.confirm }) : null;
   if (critic && step && run.refused.has(step.key)) {
     // Already refused (maybe by another route, e.g. its link, then its address): don't ask again
     return {
@@ -1052,7 +1082,7 @@ async function loop(deps: RunnerDeps, run: Run): Promise<void> {
     const changes = last && last.url === page.url && run.history.length ? changesSection(last.text, snapshotText) : '';
     run.lastSnapshot = { url: page.url, text: snapshotText };
     // Skills go with the goal: near the start, where they don't break the prompt cache
-    const goal = run.goal + skillsSection(run.skills, run.goal, page.url, run.loadedSkills);
+    const goal = run.goal + skillsSection(run.skills, run.goal, page.url, run.loadedSkills) + profileSection(run.profile, run.profileLoaded);
     const asked = Date.now();
     const reply = await deps.plan(goal, snapshotText + changes + memorySection(run.visited, page.url), run.history, run.plan, role, image);
     const { text: raw, model, unavailable, imageDropped, usage } = typeof reply === 'string'
@@ -1166,6 +1196,15 @@ async function loop(deps: RunnerDeps, run: Run): Promise<void> {
         if (result.startsWith('❌')) run.needPlanner = true;
         continue;
       }
+      if (action.action === 'use_profile') {
+        // Like use_skill: the details join the prompt from the next call
+        const has = filledFields(run.profile).length > 0;
+        if (has) run.profileLoaded = true;
+        const result = has ? "✅ loaded: the user's details are now under MY DETAILS" : '❌ the user has no details saved in their autofill profile; ask them for what the task needs';
+        addHistory(run, `${desc} → ${result}`);
+        addStep(run, action, result);
+        continue;
+      }
       if (action.action === 'use_skill') {
         // Handled here, not on the page: the skill joins the prompt from the next call
         const skill = run.skills.find((sk) => sk.name === slugify(action.text ?? ''));
@@ -1222,6 +1261,7 @@ export async function startRun(deps: RunnerDeps, tabId: number, goal: string, op
     split: !!options.split, needPlanner: true, routineCalls: 0, roleModels: {},
     screenshots: options.screenshots ?? 'off', noVision: new Set(),
     skills: options.skills ?? [], loadedSkills: new Set(chosen), chosenSkills: chosen, customCode: !!options.customCode, confirm: !!options.confirm,
+    profile: options.profile ?? [], profileLoaded: !!options.autofill,
     critic: !!options.critic, sites: new Set(), cleared: new Set(), refused: new Map(), sitesOk: new Set(),
     id: `${Date.now().toString(36)}-${tabId}`, started: Date.now(), timeline: [], calls: 0, checks: 0, tokens: 0, secrets: new Set(), source: options.source,
     trace: [], steps: [], workflow: options.workflow, replayIndex: 0, ...(options.workflow ? { replay: 'replaying' as const } : {}),

@@ -23,7 +23,7 @@ export interface ToolCall {
 export const NEXT_ACTIONS_TOOL = 'next_actions';
 
 const ACTION_NAMES = [
-  'click', 'type', 'clear_and_type', 'select', 'navigate', 'scroll', 'press_key', 'read', 'find', 'extract', 'run_code', 'note', 'wait', 'use_skill', 'done',
+  'click', 'type', 'clear_and_type', 'select', 'navigate', 'scroll', 'press_key', 'read', 'find', 'extract', 'run_code', 'note', 'wait', 'use_skill', 'use_profile', 'done',
 ];
 
 export const AGENT_TOOLS: ToolDef[] = [{

@@ -9,7 +9,7 @@ export type ParseResult =
 
 const ACTIONS: ReadonlySet<AgentAction['action']> = new Set([
   'click', 'type', 'clear_and_type', 'select', 'navigate',
-  'scroll', 'read', 'wait', 'done', 'press_key', 'find', 'note', 'use_skill', 'extract', 'run_code',
+  'scroll', 'read', 'wait', 'done', 'press_key', 'find', 'note', 'use_skill', 'use_profile', 'extract', 'run_code',
 ]);
 
 /**

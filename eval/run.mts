@@ -269,7 +269,7 @@ function mockPlanner(plan: (MockStep | MockStep[])[]) {
     };
     /** The action as the model would send it, or a string saying what's missing. */
     const resolve = (s: MockStep): object | string => {
-      if (s.action === 'done' || s.action === 'find' || s.action === 'extract' || s.action === 'run_code' || s.action === 'wait') return s;
+      if (s.action === 'done' || s.action === 'find' || s.action === 'extract' || s.action === 'run_code' || s.action === 'wait' || s.action === 'use_profile') return s;
       if (s.action === 'press_key') return { action: 'press_key', key: s.key, elementId: s.target ? findId(s.target) : undefined };
       const elementId = findId(s.target, s.group, 'nth' in s ? s.nth : 0);
       if (elementId === undefined) return `MOCK: no element matching ${s.target}${s.group ? ` under ${s.group}` : ''} in snapshot`;
@@ -292,7 +292,7 @@ function mockPlanner(plan: (MockStep | MockStep[])[]) {
 }
 
 /** The profile dir holds the API key in extension storage; delete it after use. */
-async function launch(apiKey: string, skills: unknown[] = [], workflows: unknown[] = [], shortcuts: unknown[] = []): Promise<{ context: BrowserContext; userDataDir: string }> {
+async function launch(apiKey: string, skills: unknown[] = [], workflows: unknown[] = [], shortcuts: unknown[] = [], profile?: unknown[]): Promise<{ context: BrowserContext; userDataDir: string }> {
   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tabi-eval-'));
   const context = await chromium.launchPersistentContext(userDataDir, {
     channel: 'chromium',
@@ -315,6 +315,7 @@ async function launch(apiKey: string, skills: unknown[] = [], workflows: unknown
   if (skills.length) await worker.evaluate((list) => chrome.storage.local.set({ tabi_skills: list }), skills);
   if (shortcuts.length) await worker.evaluate((list) => chrome.storage.local.set({ tabi_shortcuts: list }), shortcuts);
   if (workflows.length) await worker.evaluate((list) => chrome.storage.local.set({ tabi_workflows: list }), workflows);
+  if (profile) await worker.evaluate((list) => chrome.storage.local.set({ tabi_profile: list }), profile);
   return { context, userDataDir };
 }
 
@@ -335,7 +336,7 @@ async function runTask(task: Task, trial: number, server: FixtureServer, apiKey:
   const installed = learnedSkills.get(task.id) ?? [];
   const workflow = savedWorkflows.get(task.id);
   const shortcut = args.shortcuts ? { name: shortcutName(task.goal), prompt: task.goal } : undefined;
-  const { context, userDataDir } = await launch(apiKey, installed, workflow ?? [], shortcut ? [shortcut] : []);
+  const { context, userDataDir } = await launch(apiKey, installed, workflow ?? [], shortcut ? [shortcut] : [], task.profile);
   /** Set while the extension writes a skill: those calls are counted apart. */
   let learning = false;
   const result: RunResult = {
@@ -614,7 +615,8 @@ async function main() {
     console.error(`No tasks match ${args.task}. Known: ${TASKS.map(t => t.id).join(', ')}`);
     process.exit(1);
   }
-  const unrouted = tasks.filter(t => !isAgentCommand(t.goal));
+  // A /command runs as typed (the panel's own commands, e.g. /autofill, start their task themselves)
+  const unrouted = tasks.filter(t => !t.goal.startsWith('/') && !isAgentCommand(t.goal));
   if (unrouted.length) {
     console.error(`These goals would go to chat instead of the agent: ${unrouted.map(t => t.id).join(', ')}`);
     process.exit(1);

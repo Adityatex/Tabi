@@ -1,0 +1,58 @@
+<!doctype html>
+<html><head><title>Hostel application</title>
+<style>
+  body { font-family: sans-serif; max-width: 560px; margin: 24px auto; }
+  label { display: block; margin-top: 14px; font-weight: 600; }
+  input, select, textarea { display: block; width: 100%; margin-top: 4px; padding: 6px; box-sizing: border-box; }
+  fieldset { margin-top: 14px; }
+  fieldset label { display: inline; font-weight: normal; margin-right: 12px; }
+  fieldset input { display: inline; width: auto; }
+</style></head>
+<body>
+  <!-- An application form whose questions are worded unlike the user's
+       profile ("Contact number", "E-mail ID", "Enrollment No."), with a
+       guardian's phone that isn't the user's, a date in the browser's own
+       format, questions the profile can't answer, and a submit button that
+       must not be pressed. Every change is saved as a draft. -->
+  <h1>Hostel application 2026</h1>
+  <form id="form" action="/api/application/submit" method="post">
+    <label for="name">Applicant's full name</label>
+    <input id="name" name="applicant">
+    <label for="contact">Contact number</label>
+    <input id="contact" name="contact" type="tel">
+    <label for="mail">E-mail ID</label>
+    <input id="mail" name="mail" type="email">
+    <label for="guardian">Father's / guardian's phone number</label>
+    <input id="guardian" name="guardian" type="tel">
+    <label for="enrol">Enrollment No.</label>
+    <input id="enrol" name="enrol">
+    <label for="dob">Date of birth</label>
+    <input id="dob" name="dob" type="date">
+    <label for="state">State of residence</label>
+    <select id="state" name="state">
+      <option value="">Choose…</option>
+      <option>Delhi</option><option>Karnataka</option><option>Maharashtra</option><option>Tamil Nadu</option><option>Uttar Pradesh</option>
+    </select>
+    <fieldset>
+      <legend>Do you need a room for the summer term?</legend>
+      <label><input type="radio" name="summer" value="yes"> Yes</label>
+      <label><input type="radio" name="summer" value="no"> No</label>
+    </fieldset>
+    <label for="why">Why do you want a hostel room? (100 words)</label>
+    <textarea id="why" name="why" rows="4"></textarea>
+    <button type="submit" style="margin-top: 16px">Submit application</button>
+  </form>
+  <script>
+    const form = document.getElementById('form');
+    let timer;
+    const saveDraft = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        const data = Object.fromEntries(new FormData(form));
+        fetch('/api/application/draft', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(data) });
+      }, 200);
+    };
+    form.addEventListener('input', saveDraft);
+    form.addEventListener('change', saveDraft);
+  </script>
+</body></html>

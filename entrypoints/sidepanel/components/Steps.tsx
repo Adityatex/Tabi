@@ -3,7 +3,7 @@
 // opens to show the element and the model that chose it.
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
-  ArrowRight, BookOpen, Check, ChevronDown, ChevronRight, CircleCheck, Clock, Code, Database, Eye, Keyboard, ListChecks, MousePointerClick,
+  ArrowRight, BookOpen, Check, ChevronDown, ChevronRight, CircleCheck, Clock, Code, Database, Eye, IdCard, Keyboard, ListChecks, MousePointerClick,
   Repeat, Search, SkipForward, StickyNote, ArrowDownUp, X, type LucideIcon,
 } from 'lucide-react';
 import TabiMark from '@/components/TabiMark';
@@ -12,7 +12,7 @@ import { foldLongRun, LONG_RUN, type FoldRow } from '@/lib/panel/view';
 
 const ICONS: Record<StepIcon, LucideIcon> = {
   click: MousePointerClick, type: Keyboard, select: ListChecks, navigate: ArrowRight, scroll: ArrowDownUp, key: Keyboard,
-  read: Eye, find: Search, wait: Clock, note: StickyNote, extract: Database, code: Code, skill: BookOpen, replay: Repeat,
+  read: Eye, find: Search, wait: Clock, note: StickyNote, extract: Database, code: Code, skill: BookOpen, profile: IdCard, replay: Repeat,
 };
 
 const pad = (n: number) => String(n).padStart(2, '0');

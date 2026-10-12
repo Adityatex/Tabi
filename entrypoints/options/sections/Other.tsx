@@ -1,46 +1,107 @@
 // Autofill profile, Appearance, Privacy & data, and About.
-import { useEffect, useState } from 'react';
-import { ArrowUpRight, Database, History, Keyboard, Trash2, X } from 'lucide-react';
-import { loadStoredProfile, saveStoredProfile, PROFILE_FIELDS, DEFAULT_PROFILE, type AutofillProfile } from '@/lib/automation/profile';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { ArrowDown, ArrowUp, ArrowUpRight, Database, History, IdCard, Keyboard, Plus, Trash2, X } from 'lucide-react';
+import { SUGGESTED_FIELDS, loadProfile, saveProfile, type ProfileField } from '@/lib/automation/profile';
 import { MAX_RUNS } from '@/lib/agent/timeline';
 import TabiMark from '@/components/TabiMark';
-import { Card, ControlRow, Field, Notice, PageHead, Segmented, TextInput, ToggleRow, send } from '../ui';
+import { Card, ControlRow, Empty, IconButton, Notice, PageHead, Segmented, TextInput, ToggleRow, send } from '../ui';
 import { DEFAULT_SELECTION, SELECTION_KEY, cleanSelectionPrefs, loadSelectionPrefs, updateSelectionPrefs, type SelectionPrefs } from '@/lib/utils/selectionPrefs';
 import { THEMES, loadTheme, saveTheme, type Theme } from '@/lib/utils/theme';
 import { ASK_COMMAND, shortcutsPage, useOpenShortcut } from '@/components/useOpenShortcut';
 
+/** An answer box that grows with its text, for answers that run to a few lines. */
+function AnswerBox({ value, label, onChange }: { value: string; label: string; onChange: (value: string) => void }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useLayoutEffect(() => {
+    const box = ref.current;
+    if (!box) return;
+    box.style.height = '';
+    if (box.value) box.style.height = `${Math.min(box.scrollHeight + 2, 160)}px`;
+  }, [value]);
+  return (
+    <textarea
+      ref={ref}
+      rows={1}
+      value={value}
+      aria-label={label}
+      placeholder="Your answer"
+      onChange={(e) => onChange(e.target.value)}
+      className="min-h-[34px] rounded-ctl border border-border-strong bg-raised px-[10px] py-[7px] leading-[1.35] min-w-0 w-full outline-none resize-none scroll-thin focus-visible:shadow-[var(--focus)] focus:border-accent"
+    />
+  );
+}
+
 export function Autofill() {
-  const [profile, setProfile] = useState<AutofillProfile>({ ...DEFAULT_PROFILE });
+  const [fields, setFields] = useState<ProfileField[] | null>(null);
+  const [dirty, setDirty] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
-  useEffect(() => { loadStoredProfile().then(setProfile).catch(() => {}); }, []);
+  useEffect(() => { loadProfile().then(setFields).catch(() => setFields([])); }, []);
+
+  const change = (next: ProfileField[]) => {
+    setFields(next);
+    setDirty(true);
+    setMessage(null);
+  };
+  const edit = (i: number, part: Partial<ProfileField>) => change(fields!.map((f, j) => (j === i ? { ...f, ...part } : f)));
+  const move = (i: number, by: number) => {
+    const next = [...fields!];
+    [next[i], next[i + by]] = [next[i + by], next[i]];
+    change(next);
+  };
+  const add = (label = '') => change([...fields!, { label, value: '' }]);
 
   const save = async () => {
     try {
-      await saveStoredProfile(profile);
+      const unnamed = fields!.some((f) => !f.label.trim() && f.value.trim());
+      if (unnamed) throw new Error('Give every answer a name, so Tabi knows what it is.');
+      setFields(await saveProfile(fields!));
+      setDirty(false);
       setMessage({ ok: true, text: 'Saved on this device.' });
     } catch (err) {
       setMessage({ ok: false, text: (err as Error)?.message || 'Couldn’t save it' });
     }
   };
 
+  if (!fields) return <PageHead title="Autofill profile">Loading…</PageHead>;
+  const taken = new Set(fields.map((f) => f.label.trim().toLowerCase()));
+  const suggestions = SUGGESTED_FIELDS.filter((s) => !taken.has(s.toLowerCase()));
+
   return (
     <>
-      <PageHead title="Autofill profile">Your details, for filling in forms: type /autofill in the side panel. They’re kept only in this browser, and nothing is filled without you asking.</PageHead>
+      <PageHead title="Autofill profile">
+        Your details, for filling in forms: type /autofill in the side panel, or ask Tabi to fill in a form. Tabi matches each question to your
+        details by meaning, so a form asking for a “Contact number” gets your mobile number. Kept only in this browser; sent to your AI provider
+        only when a task fills in a form.
+      </PageHead>
       <Card bare testId="autofill">
-        <form className="px-5 py-[18px] grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-4" onSubmit={(e) => { e.preventDefault(); save(); }}>
-          {PROFILE_FIELDS.map((f) => (
-            <Field key={f.key} label={f.label} className={f.key === 'address' ? 'sm:col-span-2' : ''}>
-              <TextInput
-                type={f.type || 'text'}
-                placeholder={f.placeholder}
-                value={profile[f.key]}
-                onChange={(e) => { setProfile((p) => ({ ...p, [f.key]: e.target.value })); setMessage(null); }}
-              />
-            </Field>
+        <form className="px-5 py-[18px] flex flex-col gap-3" onSubmit={(e) => { e.preventDefault(); save(); }}>
+          <div className="hidden sm:grid grid-cols-[minmax(0,200px)_minmax(0,1fr)_84px] gap-3 text-[12px] font-medium text-muted">
+            <span>Detail</span><span>Answer</span>
+          </div>
+          {fields.length === 0 && <Empty icon={IdCard} title="No details yet">Add the details you fill in most often.</Empty>}
+          {fields.map((f, i) => (
+            <div key={i} data-testid="profile-row" className="grid grid-cols-[minmax(0,1fr)_84px] sm:grid-cols-[minmax(0,200px)_minmax(0,1fr)_84px] gap-x-3 gap-y-[6px] items-start">
+              <TextInput value={f.label} aria-label="Detail" placeholder="e.g. Roll number" onChange={(e) => edit(i, { label: e.target.value })} />
+              {/* On a narrow page the answer goes under its name, with the buttons beside the name */}
+              <div className="order-3 col-span-2 sm:order-none sm:col-span-1">
+                <AnswerBox value={f.value} label={f.label.trim() || 'Answer'} onChange={(value) => edit(i, { value })} />
+              </div>
+              <div className="order-2 sm:order-none flex items-center justify-end h-[34px]">
+                {i > 0 && <IconButton icon={ArrowUp} label={`Move ${f.label || 'this detail'} up`} onClick={() => move(i, -1)} />}
+                {i < fields.length - 1 && <IconButton icon={ArrowDown} label={`Move ${f.label || 'this detail'} down`} onClick={() => move(i, 1)} />}
+                <IconButton icon={Trash2} tone="danger" label={`Remove ${f.label || 'this detail'}`} onClick={() => change(fields.filter((_, j) => j !== i))} />
+              </div>
+            </div>
           ))}
-          <div className="sm:col-span-2 flex items-center gap-3">
-            <button type="submit" className="btn btn-primary">Save profile</button>
-            {message && <Notice kind={message.ok ? 'ok' : 'error'}>{message.text}</Notice>}
+          <div className="flex flex-wrap items-center gap-[6px] pt-1">
+            <button type="button" className="btn btn-sm btn-secondary" onClick={() => add()}><Plus size={12} aria-hidden />Add a detail</button>
+            {suggestions.map((s) => (
+              <button key={s} type="button" className="chip hover:border-border-strong hover:text-text" onClick={() => add(s)}><Plus size={11} aria-hidden />{s}</button>
+            ))}
+          </div>
+          <div className="flex items-center gap-3 pt-2 border-t border-border mt-1">
+            <button type="submit" className="btn btn-primary mt-3" disabled={!dirty}>Save profile</button>
+            <div className="mt-3">{message ? <Notice kind={message.ok ? 'ok' : 'error'}>{message.text}</Notice> : dirty && <span className="text-[12px] text-muted">Unsaved changes</span>}</div>
           </div>
         </form>
       </Card>

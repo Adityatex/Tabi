@@ -623,6 +623,7 @@ function actionsList(customCode: boolean): string {
 - {"action": "note", "text": "<facts>"} — Write down facts you will need later (prices, specs, amounts, names). Notes stay in your ACTION HISTORY after you leave the page
 - {"action": "wait", "text": "<milliseconds>"} — Wait for content to load
 - {"action": "use_skill", "text": "<skill name>"} — Load one of the OTHER SKILLS listed under the goal, when it fits the task
+- {"action": "use_profile"} — Load the user's details listed under MY DETAILS (name, email, address...), when a form needs them
 - {"action": "extract", "text": "<what, e.g. laptops>", "fields": ["name", "price", ...], "follow": <true|false>} — Collect those fields from the list, table or details on this page, in one step. With "follow": true it also reads each listed item's own page for fields the list doesn't show
 - {"action": "done", "summary": "<the result, in Markdown>"} — Task is complete${customCode ? RUN_CODE_ACTION : ''}`;
 }

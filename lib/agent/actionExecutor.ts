@@ -6,7 +6,7 @@ import { extract, formatExtraction } from '@/lib/agent/extract';
 import { EDITOR_MARK, codeEditorRoot, judgePaste, sameCode, visibleCode, type EditorResult } from '@/lib/agent/codeEditor';
 
 export interface AgentAction {
-  action: 'click' | 'type' | 'clear_and_type' | 'select' | 'navigate' | 'scroll' | 'read' | 'wait' | 'done' | 'press_key' | 'find' | 'note' | 'use_skill' | 'extract' | 'run_code';
+  action: 'click' | 'type' | 'clear_and_type' | 'select' | 'navigate' | 'scroll' | 'read' | 'wait' | 'done' | 'press_key' | 'find' | 'note' | 'use_skill' | 'use_profile' | 'extract' | 'run_code';
   elementId?: number;
   text?: string;
   url?: string;

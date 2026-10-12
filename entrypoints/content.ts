@@ -2,7 +2,7 @@
 // toolbar on selected text (lib/dom/selectionToolbar.ts). The
 // agent runner in the background reads the page (AGENT_SNAPSHOT) and acts on
 // it (AGENT_EXECUTE) through this script, and the side panel asks it for the
-// page's text, the selection, or an autofill. Cross-origin frames have their
+// page's text or the selection. Cross-origin frames have their
 // own script (frame.content.ts).
 
 import { createPageSnapshot } from '@/lib/agent/frames';
@@ -10,8 +10,6 @@ import { executeAction } from '@/lib/agent/actionExecutor';
 import { viewportMarks, describeElement, resolveElement, commitTarget, getElementById } from '@/lib/agent/domSnapshot';
 import { extractVisibleText } from '@/lib/dom/extractVisibleText';
 import { highlightText } from '@/lib/dom/highlightText';
-import { fillForm, fillDropdowns } from '@/lib/automation/formAutofill';
-import { loadStoredProfile, isProfileEmpty } from '@/lib/automation/profile';
 import { reportColorScheme } from '@/lib/utils/toolbarIcon';
 import { createPageCue, cueOf } from '@/lib/dom/pageCue';
 import { createSelectionToolbar } from '@/lib/dom/selectionToolbar';
@@ -147,16 +145,6 @@ export default defineContentScript({
         case 'PAGE_SELECTION':
           sendResponse({ text: window.getSelection()?.toString().trim() ?? '' });
           return;
-        case 'AUTOFILL':
-          // Fill the page's form from the user's saved profile
-          loadStoredProfile()
-            .then(profile => {
-              if (isProfileEmpty(profile)) return sendResponse({ empty: true });
-              const { filled, skipped } = fillForm(profile);
-              sendResponse({ filled: filled + fillDropdowns(profile), skipped });
-            })
-            .catch(err => sendResponse({ error: err?.message ?? String(err) }));
-          return true;
       }
     });
   },
