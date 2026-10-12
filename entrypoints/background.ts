@@ -14,6 +14,7 @@ import { formatError, withTimeout } from '@/lib/utils/errorHandler';
 import { providerPool, modelLabel, type FallbackResult } from '@/lib/api/fallback';
 import { trustedClick, trustedKey, trustedType, releaseTab, watchDetach, debuggerScreenshot, debuggerEvaluate } from '@/lib/agent/trustedInput';
 import { CODE_TIMEOUT_MS } from '@/lib/agent/customCode';
+import { EDITOR_MARK, setCodeInPage } from '@/lib/agent/codeEditor';
 import { SITES_KEY, cleanRules, normalizeSite, type SiteRules } from '@/lib/agent/sites';
 import { RUNS_KEY, upsertRun, runHeader, type RunLog } from '@/lib/agent/timeline';
 import { checkStep } from '@/lib/agent/critic';
@@ -862,6 +863,22 @@ export default defineBackground(() => {
             else if (kind === 'key') await trustedKey(tabId, String(key ?? 'Enter'));
             else throw new Error(`Unknown trusted input: ${kind}`);
             sendResponse({ success: true });
+            break;
+          }
+
+          case 'CODE_EDITOR': {
+            // Set or read a code editor's content through its own API, in the
+            // page's main world (lib/agent/codeEditor.ts)
+            const tabId = _sender.tab?.id;
+            if (tabId === undefined) throw new Error('No tab');
+            const text = typeof payload?.text === 'string' ? payload.text : null;
+            const [result] = await chrome.scripting.executeScript({
+              target: { tabId, frameIds: [_sender.frameId ?? 0] },
+              world: 'MAIN',
+              func: setCodeInPage,
+              args: [EDITOR_MARK, text, payload?.clear === true],
+            });
+            sendResponse({ success: true, data: result?.result ?? { ok: false, why: 'no result' } });
             break;
           }
 

@@ -1,6 +1,8 @@
 // lib/agent/domSnapshot.ts
 // Creates a compact, LLM-friendly representation of the current page DOM
 
+import { CODE_EDITOR_SELECTOR } from '@/lib/agent/codeEditor';
+
 const INTERACTIVE_SELECTOR = [
   'a[href]',
   'button',
@@ -494,6 +496,8 @@ function getAriaStates(el: Element): string[] | undefined {
   if (el.getAttribute('aria-disabled') === 'true') states.push('disabled');
   const popup = el.getAttribute('aria-haspopup');
   if (popup && popup !== 'false') states.push(`popup=${popup === 'true' ? 'menu' : popup}`);
+  // Monaco, CodeMirror, Ace: their own input box, which typing handles specially
+  if (el.closest(CODE_EDITOR_SELECTOR)) states.push('code editor');
   return states.length ? states : undefined;
 }
 

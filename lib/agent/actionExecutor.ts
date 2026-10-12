@@ -4,6 +4,7 @@
 import { getElementById, getRemoteRef, findElements, formatWithGroup, pageText, shadowRootOf, type RemoteRef } from '@/lib/agent/domSnapshot';
 import { keyParams, normalizeKey } from '@/lib/agent/keys';
 import { extract, formatExtraction } from '@/lib/agent/extract';
+import { EDITOR_MARK, codeEditorRoot, judgePaste, sameCode, visibleCode, type EditorResult } from '@/lib/agent/codeEditor';
 
 export interface AgentAction {
   action: 'click' | 'type' | 'clear_and_type' | 'select' | 'navigate' | 'scroll' | 'read' | 'wait' | 'done' | 'press_key' | 'find' | 'note' | 'use_skill' | 'extract' | 'run_code';
@@ -382,10 +383,62 @@ async function typeDate(el: HTMLInputElement, elementId: number, text: string): 
     : `❌ The ${el.type} field [${elementId}] didn't accept "${value}" (it may be outside the allowed range).`;
 }
 
+/** Set (or, without `text`, read) a code editor's content in the page's main world; see setCodeInPage. */
+async function codeInPage(root: HTMLElement, text: string | null, clear: boolean): Promise<EditorResult> {
+  root.setAttribute(EDITOR_MARK, '');
+  try {
+    const res = await Promise.race([
+      browser.runtime.sendMessage({ action: 'CODE_EDITOR', payload: { text, clear } }),
+      sleep(5000).then(() => null),
+    ]);
+    return res?.success ? res.data : { ok: false, why: res?.error ?? 'no response' };
+  } catch (err) {
+    return { ok: false, why: (err as Error).message };
+  } finally {
+    root.removeAttribute(EDITOR_MARK);
+  }
+}
+
+const lineCount = (code: string) => code.replace(/\r\n?/g, '\n').trimEnd().split('\n').length;
+
+/**
+ * Type into a code editor (see lib/agent/codeEditor.ts): through the editor's
+ * API when the page exposes it, else as a paste, never as keystrokes.
+ */
+async function typeCode(root: HTMLElement, elementId: number, text: string, clear: boolean): Promise<string> {
+  const lines = lineCount(text);
+  const what = lines > 1 ? `${lines} lines of code` : `"${text.substring(0, 40)}"`;
+  const done = (how = '') => clear ? `✅ Replaced the code in code editor [${elementId}] with ${what}${how}` : `✅ Added ${what} to code editor [${elementId}]${how}`;
+  root.scrollIntoView({ behavior: 'instant', block: 'center' });
+
+  const before = await codeInPage(root, null, false);
+  // No API to read it with: it gets pasted, so focus it like a user would first
+  if (!('value' in before)) await clickElement(root.querySelector<HTMLElement>('.view-lines, .cm-content, .CodeMirror-code, .ace_content') ?? root);
+  const after = await codeInPage(root, text, clear);
+  if (!after.ok) return `❌ Couldn't write into code editor [${elementId}]: ${after.why}`;
+
+  if ('value' in after) {
+    const expected = clear || !('value' in before) ? text : before.value + text;
+    if (sameCode(after.value, expected)) return done();
+    return `⚠️ Wrote ${what} into code editor [${elementId}], but it now holds ${lineCount(after.value)} lines, starting "${norm(after.value).substring(0, 80)}"`;
+  }
+
+  // Pasted: only the lines on screen can be read back
+  await sleep(200);
+  const shown = visibleCode(root);
+  const verdict = judgePaste(shown, text, clear);
+  if (verdict === 'exact') return done(' (pasted)');
+  if (verdict === 'end') return done(' (pasted; the end of it is in view)');
+  if (verdict === 'mixed') return `⚠️ Pasted ${what} into code editor [${elementId}], but it also shows other lines: "${norm(shown).substring(0, 80)}"`;
+  return `❌ Pasting ${what} into code editor [${elementId}] had no effect; it shows "${norm(shown).substring(0, 80)}"`;
+}
+
 async function typeText(elementId: number, text: string, clear: boolean): Promise<string> {
   const el = getElementById(elementId);
   if (!el) return `❌ Element [${elementId}] not found.`;
   if (el.tagName === 'INPUT' && (el as HTMLInputElement).type in DATE_FORMATS) return typeDate(el as HTMLInputElement, elementId, text);
+  const editor = codeEditorRoot(el);
+  if (editor) return typeCode(editor, elementId, text, clear);
   const shown = `"${text.substring(0, 40)}"`;
   const verb = clear ? 'Cleared and typed' : 'Typed';
   const field = isTextField(el);

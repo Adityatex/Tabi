@@ -622,7 +622,7 @@ function actionsList(customCode: boolean): string {
   return `ACTIONS:
 - {"action": "click", "elementId": <number>} — Click an interactive element by its ID
 - {"action": "type", "elementId": <number>, "text": "<text>"} — Append text to an input
-- {"action": "clear_and_type", "elementId": <number>, "text": "<text>"} — Clear input then type text
+- {"action": "clear_and_type", "elementId": <number>, "text": "<text>"} — Clear input then type text. In a [code editor], this replaces all its code with yours, exactly as written: send the complete code
 - {"action": "select", "elementId": <number>, "value": "<option label>"} — Choose an option in a dropdown: a native <select> (use one of its options=[...]) or a custom one (combobox, [popup=listbox], ...), which it opens for you
 - {"action": "navigate", "url": "<full url>"} — Navigate to a URL
 - {"action": "scroll", "direction": "up"|"down"} — Scroll the page

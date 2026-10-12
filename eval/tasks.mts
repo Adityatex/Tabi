@@ -68,6 +68,17 @@ function hit(events: RecordedEvent[], path: string, pred: (d: Record<string, unk
   return events.some(e => e.path === path && pred(e.data));
 }
 
+/** code-editor tasks: indented, with brackets an editor would auto-close. */
+const ADD_SOLUTION = [
+  'class Solution {',
+  'public:',
+  '    int add(int a, int b) {',
+  '        if (a == 0) { return b; }',
+  '        return a + b;',
+  '    }',
+  '};',
+].join('\n');
+
 export const TASKS: Task[] = [
   {
     id: 'search-button',
@@ -338,6 +349,19 @@ export const TASKS: Task[] = [
       { action: 'click', target: /"Save snippet"/ },
     ],
   },
+  ...(['', '?hide=1'] as const).map((query): Task => ({
+    // A real Monaco editor (LeetCode's): typed keys get auto-indented and
+    // brackets auto-closed, so the code must land exactly as written
+    id: query ? 'code-editor-paste' : 'code-editor',
+    category: 'hard',
+    start: `/code-editor.html${query}`,
+    goal: `Replace the code in the editor with this solution, then click Run:\n${ADD_SOLUTION}`,
+    check: r => hit(r.events, '/api/run', d => String(d.code).replace(/\r\n/g, '\n').trimEnd() === ADD_SOLUTION),
+    mockPlan: [
+      { action: 'clear_and_type', target: /"Code editor"/, text: ADD_SOLUTION },
+      { action: 'click', target: /"Run"/ },
+    ],
+  })),
   {
     id: 'contenteditable-message',
     category: 'hard',

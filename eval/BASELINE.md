@@ -2,6 +2,17 @@
 
 All runs are live: real model, real extension, real Chromium. A run passes only if the right requests reached the test server **and** the agent finished cleanly.
 
+## Code editors: code goes in exactly as written (2026-10-12)
+
+On LeetCode, a solution typed into the Monaco editor came out staircased: long text went in as typed input, and the editor auto-indented every new line. The check then read the editor's hidden `<textarea>`, which is always empty, called the typing a failure and typed the code a second time. Now text for a code editor (Monaco, CodeMirror, Ace) is set through the editor's own API in the page, and read back the same way. When the page doesn't expose the editor, Tabi selects everything and pastes the code; editors don't auto-indent a paste. The snapshot marks the input as `[code editor]`.
+
+The new `code-editor` task uses a real Monaco editor (from jsDelivr). The task replaces the code with an indented solution that has brackets, clicks Run, and passes only if the code that was run matches exactly. `code-editor-paste` runs the same page with the editor hidden.
+
+| | Mock | Live, Groq `qwen/qwen3.8-27b` |
+|---|---|---|
+| `code-editor` | 1/1 | 2/2 (2 calls each) |
+| `code-editor-paste` | 1/1 | 2/2 |
+
 ## Styled rating buttons: hidden radios inside their labels (2026-10-10)
 
 A real university feedback form stuck Groq's Qwen in a loop (searching for "Strongly Agree" again and again) and ran DeepSeek flash out of output tokens. Each rating is a `<label>` around a radio that CSS hides, with the option's text beside it; the question is a plain `<span>`; every course repeats the same questions. The snapshot skipped the hidden radios and didn't list labels, so the model saw nothing it could click. Now a hidden radio or checkbox with a visible label is listed through that label (described as the radio: text, value, checked), and a radio group that nothing names gets the text next to its options as its question. Separately, an answer cut off by the token cap before any text is asked again with twice the room (DeepSeek thinks inside the cap).

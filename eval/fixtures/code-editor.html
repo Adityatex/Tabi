@@ -1,0 +1,37 @@
+<!doctype html>
+<html><head><title>Two Sum</title>
+<style>
+  body { font-family: sans-serif; display: flex; gap: 16px; }
+  #problem { width: 320px; }
+  #editor { width: 640px; height: 360px; border: 1px solid #999; }
+</style></head>
+<body>
+  <!-- A coding-practice page like LeetCode: a real Monaco editor that
+       auto-indents and auto-closes brackets as keys are typed. With ?hide=1 the
+       page doesn't expose window.monaco, so code has to go in as a paste. -->
+  <div id="problem">
+    <h1>1. Add</h1>
+    <p>Return the sum of a and b.</p>
+    <button id="run">Run</button>
+    <pre id="result"></pre>
+  </div>
+  <div id="editor"></div>
+  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/loader.js"></script>
+  <script>
+    require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs' } });
+    require(['vs/editor/editor.main'], () => {
+      const editor = monaco.editor.create(document.getElementById('editor'), {
+        value: 'class Solution {\npublic:\n    int add(int a, int b) {\n        \n    }\n};',
+        language: 'cpp',
+        ariaLabel: 'Code editor',
+        automaticLayout: true,
+        minimap: { enabled: false },
+      });
+      if (new URLSearchParams(location.search).has('hide')) delete window.monaco;
+      document.getElementById('run').addEventListener('click', async () => {
+        document.getElementById('result').textContent = 'Accepted';
+        await fetch('/api/run', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: editor.getValue() }) });
+      });
+    });
+  </script>
+</body></html>
