@@ -1,4 +1,3 @@
-// entrypoints/sidepanel/components/TasksStrip.tsx
 // Tasks in other tabs, above the composer: one line folded ("2 tasks in other
 // tabs · 1 needs you"), a row each when open. A task waiting for an answer
 // shows its question here, so it can be answered without switching tabs.

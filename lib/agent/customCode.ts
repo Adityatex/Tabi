@@ -1,4 +1,3 @@
-// lib/agent/customCode.ts
 // run_code: the model's own JavaScript for reading a page, for what `extract`
 // can't do. Opt-in (prefs.customCode). The background runs it through the
 // debugger in an isolated world: it sees the page's DOM but not its scripts,
@@ -9,7 +8,7 @@
 // why this is off by default. No DOM access here: used by the background.
 
 /** Longest code accepted (a reading snippet, not a program). */
-export const MAX_CODE_CHARS = 4000;
+const MAX_CODE_CHARS = 4000;
 /** Longest result returned to the model. */
 export const MAX_RESULT_CHARS = 3000;
 /** How long the code may run. */

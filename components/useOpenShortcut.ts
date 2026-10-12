@@ -1,4 +1,3 @@
-// components/useOpenShortcut.ts
 // Tabi's keyboard shortcuts (open Tabi, ask about the selection), as the browser has them now. Only the
 // user can set it, on the browser's own shortcuts page (an extension can
 // suggest one at install, not change it), so pages read it rather than
@@ -15,7 +14,7 @@ const OPEN_COMMAND = '_execute_action';
 export const ASK_COMMAND = 'ask-selection';
 
 /** "Alt+T", or '' when none is set (or the browser took it for one of its own). */
-export async function commandShortcut(name: string = OPEN_COMMAND): Promise<string> {
+async function commandShortcut(name: string = OPEN_COMMAND): Promise<string> {
   const commands = await browser.commands.getAll();
   return commands.find((c) => c.name === name)?.shortcut ?? '';
 }

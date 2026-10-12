@@ -1,4 +1,3 @@
-// eval/parallel-e2e.mts
 // End-to-end check of parallel tasks: from the side panel, three tasks sent
 // with Background on, with at most 2 tasks at once. A fake model answers each call
 // after 2 seconds, so the tasks overlap. Checks the limit holds (never more

@@ -1,4 +1,3 @@
-// entrypoints/content.ts
 // Tabi in the page: eyes and hands, the cue while a task runs here, and the
 // toolbar on selected text (lib/dom/selectionToolbar.ts). The
 // agent runner in the background reads the page (AGENT_SNAPSHOT) and acts on
@@ -113,8 +112,6 @@ export default defineContentScript({
                 visual: {
                   marks: viewportMarks(),
                   viewport: { width: window.innerWidth, height: window.innerHeight },
-                  // The side panel is outside the page, so there is nothing to crop
-                  cropRight: null,
                 },
               } : {}),
             }))

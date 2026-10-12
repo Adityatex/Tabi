@@ -1,4 +1,3 @@
-// eval/settings-e2e.mts
 // End-to-end check of the Settings page. Through its controls, as a user
 // would: save a provider (the key is shown masked and never in the page),
 // add a backup and move it up, turn off "Ask before buying" (a warning

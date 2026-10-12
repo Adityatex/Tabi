@@ -1,4 +1,3 @@
-// eval/tasks.mts
 // Benchmark tasks. Each task is graded by `check` against what the fixture
 // server recorded (or, for extraction tasks, the agent's final summary).
 //
@@ -8,7 +7,7 @@
 // the question or section heading that line is listed under (`nth`: the nth such
 // match, from 0, for questions repeated on a page), so mock runs exercise the real
 // snapshot + executor + navigation-resume code in a real browser, just without
-// an LLM. When the target isn't in the snapshot, the mock gives up — which is
+// an LLM. When the target isn't in the snapshot, the mock gives up, which is
 // exactly how a model fails when an element is invisible to it.
 //
 // `knownIssue` marks tasks the current agent is expected to FAIL in mock mode.
@@ -161,8 +160,8 @@ export const TASKS: Task[] = [
     start: '/slow-form.html',
     goal: 'Fill in 4 guests and submit the booking',
     asks: ['click "Book now"'],
-    // Exactly one booking: planning again from the page that is still waiting on
-    // the server would act on a stale page (and used to double-submit)
+    // Exactly one booking: an agent that plans again while the page still waits
+    // on the server acts on a stale page and books twice
     check: r => r.events.filter(e => e.path === '/api/slow/booking').length === 1
       && hit(r.events, '/api/slow/booking', d => d.guests === '4'),
     mockPlan: [

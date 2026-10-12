@@ -1,4 +1,3 @@
-// entrypoints/options/sections/Schedules.tsx
 // Schedules: a workflow or shortcut that runs on its own (hourly, daily or
 // weekly) in a background tab. A table of them, and a form to add one.
 import { useEffect, useState } from 'react';

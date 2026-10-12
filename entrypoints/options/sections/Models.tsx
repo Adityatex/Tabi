@@ -1,4 +1,3 @@
-// entrypoints/options/sections/Models.tsx
 // Models & keys: the main provider (provider, model, masked key with Test and
 // Replace), backup providers in order (drag to reorder), and the optional fast
 // model for routine steps. Keys stay in the background worker; this page only

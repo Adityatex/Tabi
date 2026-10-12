@@ -1,4 +1,3 @@
-// lib/agent/prefs.ts
 // Agent preferences, stored in chrome.storage.local and edited in Settings.
 
 export interface AgentPrefs {

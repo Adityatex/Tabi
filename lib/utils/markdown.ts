@@ -1,4 +1,3 @@
-// lib/utils/markdown.ts
 // A small Markdown renderer for what the model writes in the side panel:
 // answers, and the result of a task. Block by block (paragraphs, headings,
 // lists with nesting, tables, quotes, code), then inline (bold, italic, code,

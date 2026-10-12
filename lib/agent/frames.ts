@@ -1,4 +1,3 @@
-// lib/agent/frames.ts
 // Page snapshots that include cross-origin iframes (e.g. Stripe-style payment
 // forms). The top page can't read those frames, but Tabi's frame content
 // script runs inside every frame (entrypoints/frame.content.ts) and can.

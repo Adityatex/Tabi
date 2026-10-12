@@ -1,9 +1,4 @@
-// lib/utils/errorHandler.ts
-// Centralized error formatting and timeout utilities
-
-/**
- * Format any error into a clean user-facing string
- */
+/** An error's message, whatever was thrown. */
 export function formatError(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
@@ -17,9 +12,7 @@ export function formatError(error: unknown): string {
   return 'An unknown error occurred';
 }
 
-/**
- * Wrap a promise with a timeout. Rejects if the promise doesn't resolve within `ms` milliseconds.
- */
+/** The promise, or a rejection ("Page timed out after 20s") if it takes longer than `ms`. */
 export function withTimeout<T>(promise: Promise<T>, ms: number, label = 'Operation'): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => {

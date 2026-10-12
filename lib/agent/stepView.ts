@@ -1,4 +1,3 @@
-// lib/agent/stepView.ts
 // Steps in plain words for the side panel: Clicked “Checkout”, then what
 // came of it (Opened “Shipping”, or why it failed). The model's history keeps
 // its own terse form (`click [3] → ✅ Clicked "Checkout"`); this is what the
@@ -74,7 +73,7 @@ function typedValue(action: AgentAction, secret: boolean): string {
  * What an action did, in the past tense. `label` is its element's visible
  * label, when known; `secret` hides what was typed (passwords, card numbers).
  */
-export function actionWords(action: AgentAction, label: string, secret = false): string {
+function actionWords(action: AgentAction, label: string, secret = false): string {
   const into = label ? ` into ${quote(label)}` : '';
   switch (action.action) {
     case 'click': return label ? `Clicked ${quote(label)}` : 'Clicked an element';
@@ -96,7 +95,7 @@ export function actionWords(action: AgentAction, label: string, secret = false):
 }
 
 /** The same, under way: Clicking “Checkout”. */
-export function actionUnderWay(action: AgentAction, label: string, secret = false): string {
+function actionUnderWay(action: AgentAction, label: string, secret = false): string {
   const into = label ? ` into ${quote(label)}` : '';
   switch (action.action) {
     case 'click': return label ? `Clicking ${quote(label)}` : 'Clicking an element';
@@ -150,7 +149,7 @@ function cleanResult(result: string, label: string): string {
 }
 
 /** What came of an action, in a few words. */
-export function resultWords(action: AgentAction, result: string, label: string, secret = false): string {
+function resultWords(action: AgentAction, result: string, label: string, secret = false): string {
   const status = statusOf(result);
   // A navigation: say where it ended up
   const landed = /now on "([^"]*)"/.exec(result);
@@ -191,7 +190,7 @@ export function stepUnderWay(n: number, action: AgentAction, opts: { label?: str
 }
 
 /** Steps kept in a run's view; older ones are summed up in one row. */
-export const MAX_VIEW_STEPS = 200;
+const MAX_VIEW_STEPS = 200;
 
 /** Earlier steps that don't fit, counted: "6 earlier steps · all succeeded". */
 export interface HiddenSteps {

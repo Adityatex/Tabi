@@ -1,4 +1,3 @@
-// eval/redact.mts
 // Playwright errors include full request headers, so an API key can end up in
 // anything the harness prints. Every error message goes through this first.
 

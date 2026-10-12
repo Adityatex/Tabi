@@ -1,4 +1,3 @@
-// lib/agent/tools.ts
 // The agent's reply as a native tool (OpenAI-style function calling), for
 // providers and models that support it. Instead of writing JSON in its reply,
 // which some models get wrong, the model calls one tool whose arguments are

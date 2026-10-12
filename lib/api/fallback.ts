@@ -1,4 +1,3 @@
-// lib/api/fallback.ts
 // Provider fallback: try the active provider, and when it is rate-limited or
 // failing, the user's backup providers in order. Nothing about a task lives
 // with a provider (every agent call sends the goal, plan, history and page), so

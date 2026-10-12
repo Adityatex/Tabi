@@ -1,9 +1,7 @@
-// lib/agent/screenshot.ts
 // Screenshots for vision models (background service worker only). The page is
-// captured, the Tabi sidebar cropped off, the image shrunk, and each
-// numbered element outlined with its snapshot ID ("set of marks"), so the model
-// can match what it sees to the IDs it acts on. The marks are drawn on the
-// image, never on the page.
+// captured, the image shrunk, and each numbered element outlined with its
+// snapshot ID ("set of marks"), so the model can match what it sees to the IDs
+// it acts on. The marks are drawn on the image, never on the page.
 
 import type { Mark } from '@/lib/agent/domSnapshot';
 
@@ -12,15 +10,10 @@ export interface VisualInfo {
   marks: Mark[];
   /** Viewport size in CSS pixels. */
   viewport: { width: number; height: number };
-  /** Left edge of the open sidebar in CSS pixels; the image is cut there. */
-  cropRight: number | null;
 }
 
 /** Width of the image sent to the model, in pixels. */
-export const SCREENSHOT_WIDTH = 1024;
-
-/** CSS pixels left of the sidebar also cut off, where its drop shadow falls. */
-const SIDEBAR_SHADOW = 16;
+const SCREENSHOT_WIDTH = 1024;
 
 const COLORS = ['#e6194b', '#3cb44b', '#4363d8', '#f58231', '#911eb4', '#008080', '#9a6324', '#800000'];
 
@@ -33,15 +26,10 @@ export interface Layout {
   scale: number;
 }
 
-/**
- * Where to cut the capture and how big to make the output: keep the viewport
- * left of the sidebar, no wider than SCREENSHOT_WIDTH, never enlarged.
- */
+/** How big to make the output: no wider than SCREENSHOT_WIDTH, never enlarged. */
 export function layoutFor(info: VisualInfo, bitmapWidth: number, bitmapHeight: number, maxWidth = SCREENSHOT_WIDTH): Layout {
   const ratio = bitmapWidth / info.viewport.width; // device pixel ratio of the capture
-  // The sidebar's shadow reaches a little past its edge
-  const cut = info.cropRight && info.cropRight > 100 ? info.cropRight - SIDEBAR_SHADOW : null;
-  const cssWidth = cut ? Math.min(cut, info.viewport.width) : info.viewport.width;
+  const cssWidth = info.viewport.width;
   const sw = Math.round(cssWidth * ratio);
   const sh = bitmapHeight;
   const scale = Math.min(maxWidth / cssWidth, ratio);
@@ -62,7 +50,7 @@ export async function annotate(captured: Blob, info: VisualInfo): Promise<string
   for (const m of info.marks) {
     const x = m.x * l.scale;
     const y = m.y * l.scale;
-    if (x >= l.width || y >= l.height) continue; // under the sidebar or below the fold
+    if (x >= l.width || y >= l.height) continue; // below the fold
     const color = COLORS[m.id % COLORS.length];
     ctx.strokeStyle = color;
     ctx.strokeRect(x, y, m.w * l.scale, m.h * l.scale);

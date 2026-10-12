@@ -1,4 +1,3 @@
-// entrypoints/sidepanel/components/Idle.tsx
 // Nothing running in this tab: ideas for the page, saved workflows to run,
 // and recent tasks.
 import { ArrowRight, CircleCheck, CircleStop, CircleX, FileText, FormInput, Play, Repeat, TextSelect, type LucideIcon } from 'lucide-react';

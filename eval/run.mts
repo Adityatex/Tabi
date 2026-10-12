@@ -1,4 +1,3 @@
-// eval/run.mts
 // End-to-end benchmark: loads the built extension into Chromium, types each
 // task's goal into the real side panel (eval/panel.mts), and grades the result from what the
 // fixture server recorded.

@@ -2,13 +2,12 @@
 
 Notes for whoever owns the GitHub repository. None of this affects building or using the extension.
 
-## Pending repository setup
+## Repository settings
 
-These live in GitHub's settings rather than in the code, so they have to be done by hand. They were lost when the repository was recreated on 2026-09-26.
+These live in GitHub's settings rather than in the code, so they're set by hand.
 
-- [ ] **Description and topics.** On the repo page, click the gear next to **About**.
-  - Suggested description: *Open-source AI browser agent for Chrome (MV3). Works with any OpenAI-compatible model (Groq, Gemini, Mistral, DeepSeek, OpenAI, OpenRouter, Kilo, Ollama) and has an end-to-end benchmark.*
-  - Suggested topics: `browser-extension`, `chrome-extension`, `manifest-v3`, `ai-agent`, `llm`, `web-automation`, `playwright`, `typescript`
+- [x] **Description**, set under the gear next to **About**.
+- [ ] **Topics**, in the same place: `browser-extension`, `chrome-extension`, `manifest-v3`, `ai-agent`, `llm`, `web-automation`, `playwright`, `typescript`
 - [ ] **Secrets for the live benchmark** (optional). Only the manual **Live eval** workflow uses them; regular CI needs no secrets. Add them under **Settings → Secrets and variables → Actions → New repository secret**, one per provider you want to benchmark:
   - `GROQ_API_KEY`
   - `DEEPSEEK_API_KEY`

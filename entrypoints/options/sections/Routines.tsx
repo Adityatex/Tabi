@@ -1,4 +1,3 @@
-// entrypoints/options/sections/Routines.tsx
 // Your routines: skills (instructions the agent follows on similar tasks),
 // workflows (a task's exact steps, replayed with no AI calls) and shortcuts
 // (saved requests with {blanks}).

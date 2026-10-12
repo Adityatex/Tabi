@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-// mcp/src/server.ts
 // tabi-mcp: an MCP server that lets an AI app you already use (Claude Code,
 // Claude Desktop, Codex, ...) drive your real browser through the Tabi
 // extension. The model runs inside that app, on your plan with it; Tabi

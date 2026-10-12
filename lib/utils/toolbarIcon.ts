@@ -1,4 +1,3 @@
-// lib/utils/toolbarIcon.ts
 // The toolbar icon: the mark in one colour (dark ink on a light toolbar,
 // light ink on a dark one), never animated, with an amber dot while a task
 // needs you. Chrome has no light/dark icons in the manifest, so pages report

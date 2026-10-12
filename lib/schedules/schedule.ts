@@ -1,4 +1,3 @@
-// lib/schedules/schedule.ts
 // Schedules: run a workflow or shortcut automatically, hourly, daily or
 // weekly, in local time. Times and storage here (no Chrome APIs); the
 // background's scheduler (lib/schedules/scheduler.ts) sets the alarms and runs them.
@@ -35,7 +34,7 @@ export interface Schedule {
   lastRun?: ScheduleResult;
 }
 
-export const SCHEDULES_KEY = 'tabi_schedules';
+const SCHEDULES_KEY = 'tabi_schedules';
 export const MAX_SCHEDULES = 50;
 
 function parseTime(time: string): { h: number; m: number } {

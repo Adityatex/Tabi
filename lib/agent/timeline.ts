@@ -1,4 +1,3 @@
-// lib/agent/timeline.ts
 // The run timeline: a saved, step-by-step record of each agent run, for the
 // History page. The chat shows a run while it's open; this keeps what a
 // background or scheduled task did after its tab is gone. Text only, kept on
@@ -12,7 +11,7 @@ export const RUNS_KEY = 'tabi_runs';
 /** Runs kept; older ones are dropped. */
 export const MAX_RUNS = 50;
 /** Entries kept per run; a very long run keeps its first ones and its last ones. */
-export const MAX_ENTRIES = 400;
+const MAX_ENTRIES = 400;
 
 /**
  * step: an action and what came of it. note: Tabi telling the model
@@ -110,7 +109,7 @@ export function maskSecrets(log: RunLog, secrets: Iterable<string>): RunLog {
  * Most characters of saved timelines: chrome.storage.local holds about 10 MB
  * for the whole extension, and settings, skills and workflows live there too.
  */
-export const MAX_STORED_CHARS = 4_000_000;
+const MAX_STORED_CHARS = 4_000_000;
 
 /** The stored list with this run added or updated: newest first, at most `max` runs and MAX_STORED_CHARS. */
 export function upsertRun(list: RunLog[], log: RunLog, max = MAX_RUNS, maxChars = MAX_STORED_CHARS): RunLog[] {

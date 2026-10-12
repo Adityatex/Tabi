@@ -1,12 +1,11 @@
-// lib/skills/store.ts
 // Skills saved in chrome.storage.local (background and Settings). Storage is
 // injected so this can be tested.
 
 import type { Skill } from '@/lib/skills/skill';
 
-export const SKILLS_KEY = 'tabi_skills';
+const SKILLS_KEY = 'tabi_skills';
 /** Most skills kept; each is a few KB at most. */
-export const MAX_SKILLS = 100;
+const MAX_SKILLS = 100;
 
 export interface KeyValueStorage {
   get(key: string): Promise<Record<string, unknown>>;

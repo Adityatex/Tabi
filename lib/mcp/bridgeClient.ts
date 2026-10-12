@@ -1,4 +1,3 @@
-// lib/mcp/bridgeClient.ts
 // The extension end of the tabi-mcp bridge (background service worker).
 // It connects to the tabi-mcp server on 127.0.0.1, checks the server knows
 // the pairing token before accepting any command, then runs the requests it

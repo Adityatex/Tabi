@@ -1,4 +1,3 @@
-// entrypoints/sidepanel/components/Composer.tsx
 // The one input box: ask about the page or tell Tabi what to do. Auto picks
 // Answer or Do it from the words, and the chip switches it. Background runs
 // the task in a new tab. Typing / opens shortcuts, workflows, skills and commands.

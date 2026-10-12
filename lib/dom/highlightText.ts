@@ -1,4 +1,3 @@
-// lib/dom/highlightText.ts
 // Show where an answer came from: find a few words on the page (ignoring case
 // and spacing), scroll to them and outline them for a moment. Used by the
 // side panel's numbered sources.

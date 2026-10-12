@@ -1,9 +1,7 @@
-// components/TabiMark.tsx
 // The Tabi mark: an abstract footprint (a toe and a sole, tilted 15°), the
 // product being built around steps. It moves to show what Tabi is doing:
 // walks while acting, taps its toe while thinking, stops mid-step in amber
-// when it needs you. Geometry and keyframes: design_handoff_tabi/tokens.css.
-// All motion stops under prefers-reduced-motion.
+// when it needs you. All motion stops under prefers-reduced-motion.
 
 import type { CSSProperties } from 'react';
 

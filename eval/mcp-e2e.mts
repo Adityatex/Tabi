@@ -1,4 +1,3 @@
-// eval/mcp-e2e.mts
 // End-to-end check of tabi-mcp, the way an AI app uses it: an MCP client
 // starts the tabi-mcp server over stdio, the real extension in real
 // Chromium pairs with it, and the tools log in on a fixture page. The script

@@ -1,4 +1,3 @@
-// tests/setup.ts
 // Unit tests run content-script code without a background service worker.
 // WXT's fake browser never answers runtime.sendMessage then, so calls like
 // requestTrusted() would hang. Reject immediately instead, like a missing

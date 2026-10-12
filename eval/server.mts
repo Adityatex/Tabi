@@ -1,4 +1,3 @@
-// eval/server.mts
 // Static server for the fixture pages. Every request under /api/ is recorded
 // so tasks are graded on what the agent actually did, not on what it claims.
 

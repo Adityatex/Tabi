@@ -1,4 +1,3 @@
-// lib/agent/keys.ts
 // Key definitions shared by scripted KeyboardEvents (content script) and
 // trusted Chrome DevTools Protocol key events (background).
 

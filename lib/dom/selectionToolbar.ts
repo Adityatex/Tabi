@@ -1,4 +1,3 @@
-// lib/dom/selectionToolbar.ts
 // The toolbar on selected text, like Sider's. Select words on a page and a
 // small bar offers Ask, Explain, Translate, Summarize and Copy; select words
 // you're writing in a text box and it offers Improve, Fix grammar, Shorter,
@@ -25,7 +24,7 @@ const GAP = 8;
 const WIN_WIDTH = 400;
 /** Text boxes it offers writing tools in (inputs of these types, and textareas). */
 const WRITABLE_INPUTS = new Set(['', 'text', 'search', 'url']);
-export const TONES = ['Professional', 'Friendly', 'Casual', 'Confident', 'Direct'];
+const TONES = ['Professional', 'Friendly', 'Casual', 'Confident', 'Direct'];
 
 /** What the page script sends for one answer (it adds the page's title, address and language). */
 export type StreamRequest = Omit<SelectionRequest, 'title' | 'url' | 'language'>;
@@ -176,7 +175,7 @@ textarea::placeholder { color: var(--muted); }
 `;
 
 /** The passage a selection is in: its nearest block's text. */
-export function passageAround(range: Range, max = 2000): string {
+function passageAround(range: Range, max = 2000): string {
   const node = range.commonAncestorContainer;
   let el = node.nodeType === Node.ELEMENT_NODE ? (node as Element) : node.parentElement;
   el = el?.closest('p, li, td, th, blockquote, pre, article, section, div') ?? el;

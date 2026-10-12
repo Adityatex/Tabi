@@ -1,4 +1,3 @@
-// entrypoints/sidepanel/components/AskCard.tsx
 // Anything that needs the user, pinned above the composer and never in the
 // stream: an action that can't be undone, a step the safety check doubts, a
 // site off the allow list, or a pause (a regular check-in, or it looks stuck).

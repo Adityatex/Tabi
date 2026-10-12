@@ -1,4 +1,3 @@
-// mcp/src/bridgeServer.ts
 // The server end of the bridge: a WebSocket server on 127.0.0.1 that the
 // Tabi extension connects to. See protocol.ts for the handshake.
 

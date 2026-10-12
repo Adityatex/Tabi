@@ -1,4 +1,3 @@
-// eval/selection-e2e.mts
 // End-to-end check of the toolbar on selected text (lib/dom/selectionToolbar.ts).
 // Reading: selecting a word shows Ask, Explain, Translate, Copy; Explain
 // streams an answer into a small chat window, from the selection and its

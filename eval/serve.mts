@@ -1,4 +1,3 @@
-// eval/serve.mts
 // Serve the benchmark's test pages for trying the extension by hand:
 //   npm run fixtures            (http://127.0.0.1:4173)
 // Prints each task's start page and goal to paste into the side panel.

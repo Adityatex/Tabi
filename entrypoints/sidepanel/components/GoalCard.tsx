@@ -1,4 +1,3 @@
-// entrypoints/sidepanel/components/GoalCard.tsx
 // The task at the top of a run: the goal, its status, time and steps, Stop
 // (always in reach while it's active), and the plan, folded to a bar or open.
 import { useEffect, useState } from 'react';

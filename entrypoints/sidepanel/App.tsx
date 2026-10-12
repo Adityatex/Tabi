@@ -1,4 +1,3 @@
-// entrypoints/sidepanel/App.tsx
 // Tabi's side panel. The header and composer never move; the middle shows the
 // current tab's task (goal, plan, steps, and anything that needs you), the
 // answers to questions about the page, or ideas when nothing is going on.

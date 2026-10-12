@@ -1,4 +1,3 @@
-// mcp/src/protocol.ts
 // The bridge between the tabi-mcp server (Node) and the Tabi extension.
 // Shared by both sides; uses only WebCrypto, which Node 20+ and Chrome have.
 //

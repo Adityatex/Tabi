@@ -1,11 +1,9 @@
-// lib/automation/formAutofill.ts
-// Stage 4 — Form autofill automation (uses user-owned profile from ./profile)
+// Fills a form from the user's profile (./profile).
 
 import type { AutofillProfile } from './profile';
 import { DEFAULT_PROFILE } from './profile';
 
 export type { AutofillProfile };
-export { DEFAULT_PROFILE };
 
 /**
  * Dispatch native input and change events so React/Angular/Vue pick up the value change

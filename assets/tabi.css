@@ -1,5 +1,4 @@
-/* assets/tabi.css
-   Tabi's look, shared by the side panel, Settings and History: the design
+/* Tabi's look, shared by the side panel, Settings and History: the design
    tokens (light by default, dark with the system setting), the fonts and the
    Tailwind theme that maps utilities onto the tokens (bg-surface, text-muted,
    border-border, rounded-card...). Colour rules: amber means "needs you" and

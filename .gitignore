@@ -1,12 +1,12 @@
 # Dependencies
 node_modules/
 
-# WXT / build output (never commit - contains bundled secrets)
+# Build output
 .output/
 .wxt/
 *.zip
 
-# Env / keys (never commit Groq keys)
+# API keys for the eval harness
 .env
 .env.*
 !.env.example

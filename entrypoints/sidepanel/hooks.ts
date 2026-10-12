@@ -1,4 +1,3 @@
-// entrypoints/sidepanel/hooks.ts
 // The side panel's connections: which tab it shows, the runs the background
 // pushes, the task list, and the bits of settings it displays.
 import { useCallback, useEffect, useRef, useState } from 'react';

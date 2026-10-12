@@ -1,4 +1,3 @@
-// lib/agent/trustedInput.ts
 // Trusted input through the Chrome DevTools Protocol (chrome.debugger).
 // Background service worker only.
 //

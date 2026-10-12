@@ -1,4 +1,3 @@
-// scripts/icons.mts
 // Renders the Tabi mark to the PNG icons in public/icons, in Chromium, from
 // the same geometry as components/TabiMark.tsx. Run after changing the mark:
 //   npm run icons

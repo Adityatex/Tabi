@@ -1,4 +1,3 @@
-// lib/skills/writer.ts
 // "Save as skill": turn a finished run into reusable instructions (background).
 
 import type { RunRecord } from '@/lib/agent/runner';

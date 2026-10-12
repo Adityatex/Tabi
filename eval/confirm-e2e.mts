@@ -1,4 +1,3 @@
-// eval/confirm-e2e.mts
 // End-to-end check of "Allow this?" (lib/agent/confirm.ts). A fake model
 // types a chat message and clicks Send. In the side panel the user answers
 // "Don't allow": nothing is sent and the model is told to finish without it.

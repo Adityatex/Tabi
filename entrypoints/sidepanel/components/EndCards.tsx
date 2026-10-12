@@ -1,7 +1,5 @@
-// entrypoints/sidepanel/components/EndCards.tsx
 // How a run ended: done (with an offer to keep it), stopped, failed (with the
 // fix for that kind of failure), or refused because the site is blocked.
-import { useState } from 'react';
 import {
   ArrowRight, Ban, BookOpen, CircleCheck, Gauge, KeyRound, MessageCircle, Play, Plus, Repeat, RotateCw, Settings,
   TriangleAlert, WandSparkles, WifiOff, X, Zap,

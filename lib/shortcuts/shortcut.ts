@@ -1,4 +1,3 @@
-// lib/shortcuts/shortcut.ts
 // Shortcuts: saved prompts, run from the side panel with /name. A prompt can have
 // blanks in braces ("Find the price of {product}"): "/price-check running
 // shoes" fills them in, and without extra words the prompt goes into the box
@@ -14,9 +13,9 @@ export interface Shortcut {
   createdAt?: number;
 }
 
-export const SHORTCUTS_KEY = 'tabi_shortcuts';
-export const MAX_SHORTCUTS = 200;
-export const MAX_PROMPT_CHARS = 2000;
+const SHORTCUTS_KEY = 'tabi_shortcuts';
+const MAX_SHORTCUTS = 200;
+const MAX_PROMPT_CHARS = 2000;
 
 /** A short /name from a prompt's first words. */
 export function shortcutName(prompt: string): string {

@@ -1,4 +1,3 @@
-// lib/skills/skill.ts
 // Skills: saved instructions for a kind of task, in SKILL.md form (the open
 // Agent Skills format: YAML front matter, then Markdown). Tabi adds one
 // optional field, `sites`, the hosts a skill is for.
@@ -136,9 +135,9 @@ export function relevance(skill: Skill, goal: string): number {
 }
 
 /** Most skills put in the prompt without being asked for. */
-export const MAX_AUTO_SKILLS = 2;
+const MAX_AUTO_SKILLS = 2;
 /** How well (see relevance) a skill must fit the goal to be included unasked, on any site. */
-export const AUTO_RELEVANCE = 0.5;
+const AUTO_RELEVANCE = 0.5;
 
 /**
  * Which skills to show the model in full: ones for the current site that

@@ -1,4 +1,3 @@
-// lib/dom/pageCue.ts
 // The on-page cue, shown only while a task runs in this tab: a soft glow
 // around the page edge, a small pill in the bottom-left corner ("Tabi is
 // working · Stop"), and a thin outline on the element being acted on. All

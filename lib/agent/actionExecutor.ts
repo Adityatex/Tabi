@@ -1,5 +1,4 @@
-// lib/agent/actionExecutor.ts
-// Executes structured actions on the DOM returned by the LLM agent
+// Carries out the model's actions on the page: click, type, select, read, find and the rest.
 
 import { getElementById, getRemoteRef, findElements, formatWithGroup, pageText, shadowRootOf, type RemoteRef } from '@/lib/agent/domSnapshot';
 import { keyParams, normalizeKey } from '@/lib/agent/keys';
@@ -351,11 +350,6 @@ async function selectCustom(trigger: HTMLElement, elementId: number, wanted: str
     : `⚠️ Clicked option "${label}" in dropdown [${elementId}] but could not confirm it was selected`;
 }
 
-/**
- * Type into a field and report what actually happened. Reading the result back
- * matters: reporting "✅ Typed" when nothing changed made the agent claim tasks
- * were done when they weren't.
- */
 /** Date and time inputs: the format their value takes, whatever the page shows. */
 const DATE_FORMATS: Record<string, [RegExp, string]> = {
   date: [/^\d{4}-\d{2}-\d{2}$/, 'YYYY-MM-DD, e.g. 2026-10-07'],
@@ -453,6 +447,10 @@ async function readCode(root: HTMLElement, elementId: number): Promise<string> {
     : `📖 Code editor [${elementId}], the lines on screen (it may hold more):\n${numbered}`;
 }
 
+/**
+ * Type into a field and report what actually happened, read back from the
+ * field: a "✅ Typed" that didn't happen leads the model to claim the task is done.
+ */
 async function typeText(elementId: number, text: string, clear: boolean): Promise<string> {
   const el = getElementById(elementId);
   if (!el) return `❌ Element [${elementId}] not found.`;

@@ -1,4 +1,3 @@
-// lib/utils/selectionPrefs.ts
 // Whether the toolbar on selected text (lib/dom/selectionToolbar.ts) shows,
 // and the sites it stays off. On by default. Read by the content script on
 // every page and changed from the toolbar's own menu or Settings.

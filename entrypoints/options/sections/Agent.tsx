@@ -1,4 +1,3 @@
-// entrypoints/options/sections/Agent.tsx
 // How the agent works: real input, check-ins, screenshots, native tool
 // calling, tasks at once, and its own read-only code (advanced).
 import { useEffect, useState } from 'react';

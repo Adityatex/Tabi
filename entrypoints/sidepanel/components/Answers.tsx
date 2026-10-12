@@ -1,4 +1,3 @@
-// entrypoints/sidepanel/components/Answers.tsx
 // Questions about the page and their answers, and the page commands
 // (summarize, explain, autofill). Answering only reads the page: it never
 // clicks, and says so.

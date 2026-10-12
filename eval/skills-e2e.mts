@@ -1,4 +1,3 @@
-// eval/skills-e2e.mts
 // End-to-end check of choosing a skill in the side panel's / menu. A saved
 // skill must be listed under Skills with its description; picking it puts
 // "/name " in the box to say what to do; sending that runs the task with the

@@ -1,4 +1,3 @@
-// eval/schedule-e2e.mts
 // End-to-end check of schedules: Settings saves a schedule for a workflow,
 // a real Chrome alarm goes off, the workflow replays in a background tab with
 // no model, the result is recorded, the tab closes and a notification shows.

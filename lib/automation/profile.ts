@@ -1,4 +1,3 @@
-// lib/automation/profile.ts
 // User-owned autofill profile, persisted in chrome.storage.local.
 // Settings edits it, the page reads it (autofill). Falls back to DEFAULT_PROFILE on first run.
 
@@ -13,7 +12,7 @@ export interface AutofillProfile {
   country: string;
 }
 
-export const PROFILE_STORAGE_KEY = 'tabi_profile';
+const PROFILE_STORAGE_KEY = 'tabi_profile';
 
 export const DEFAULT_PROFILE: AutofillProfile = {
   fullname: 'John Doe',
@@ -26,16 +25,6 @@ export const DEFAULT_PROFILE: AutofillProfile = {
   country: 'United States',
 };
 
-export const EMPTY_PROFILE: AutofillProfile = {
-  fullname: '',
-  email: '',
-  phone: '',
-  address: '',
-  city: '',
-  state: '',
-  zip: '',
-  country: '',
-};
 
 export const PROFILE_FIELDS: { key: keyof AutofillProfile; label: string; placeholder: string; type?: string }[] = [
   { key: 'fullname', label: 'Full name', placeholder: 'Ada Lovelace' },

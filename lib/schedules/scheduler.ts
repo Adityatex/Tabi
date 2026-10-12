@@ -1,4 +1,3 @@
-// lib/schedules/scheduler.ts
 // Runs schedules (lib/schedules/schedule.ts) in the background service worker:
 // one Chrome alarm per schedule, set for its next run. Chrome can drop alarms
 // on restart, so they're re-set from storage whenever the worker starts, and a
@@ -26,7 +25,7 @@ const ALARM_PREFIX = 'tabi-schedule:';
 const MISSED_AFTER_MS = 60_000;
 
 export const alarmName = (id: string) => `${ALARM_PREFIX}${id}`;
-export const scheduleIdOf = (alarm: string) => (alarm.startsWith(ALARM_PREFIX) ? alarm.slice(ALARM_PREFIX.length) : null);
+const scheduleIdOf = (alarm: string) => (alarm.startsWith(ALARM_PREFIX) ? alarm.slice(ALARM_PREFIX.length) : null);
 
 /** Schedules being run now, so an alarm and "Run now" can't start the same one twice. */
 const running = new Set<string>();

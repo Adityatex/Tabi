@@ -1,4 +1,3 @@
-// entrypoints/history/App.tsx
 // The History page: past agent runs on the left, grouped by day, and the
 // chosen run's timeline on the right (lib/history/view.ts). Opened from the
 // side panel, Settings, and a finished background or scheduled task's notification.

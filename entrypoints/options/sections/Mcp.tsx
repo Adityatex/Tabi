@@ -1,4 +1,3 @@
-// entrypoints/options/sections/Mcp.tsx
 // AI apps (MCP): let an AI app on this computer (Claude Code, Claude Desktop,
 // Codex...) drive the browser through tabi-mcp. On/off with the connection
 // status, the pairing token (pasted here, never shown back), and setup steps.

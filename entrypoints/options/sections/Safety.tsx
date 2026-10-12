@@ -1,4 +1,3 @@
-// entrypoints/options/sections/Safety.tsx
 // Safety & sites: asking before what can't be undone, the safety check
 // against hijacking, and the user's site lists (lib/agent/sites.ts): sites
 // Tabi never acts on, and optionally the only ones it acts on without asking.

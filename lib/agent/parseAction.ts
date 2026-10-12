@@ -1,4 +1,3 @@
-// lib/agent/parseAction.ts
 // Parses + validates the planner LLM's raw output into an AgentAction.
 // Invalid output is reported as an error instead of being treated as "done".
 

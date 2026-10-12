@@ -3,25 +3,20 @@ import { layoutFor, type VisualInfo } from '@/lib/agent/screenshot';
 import { callLLM, acceptsImages, planAgentStep } from '@/lib/api/llmClient';
 import type { LLMConfig } from '@/lib/api/providers';
 
-const info = (width: number, height: number, cropRight: number | null = null): VisualInfo =>
-  ({ marks: [], viewport: { width, height }, cropRight });
+const info = (width: number, height: number): VisualInfo => ({ marks: [], viewport: { width, height } });
 
 describe('screenshot layout', () => {
-  it("cuts off the sidebar (and its shadow) and shrinks to 1024 px wide", () => {
-    // 1600×900 CSS viewport captured at 2x, sidebar from x = 1180
-    const l = layoutFor(info(1600, 900, 1180), 3200, 1800);
-    expect(l).toMatchObject({ sx: 0, sy: 0, sw: 2328, sh: 1800, width: 1024 }); // cut at 1180 - 16 px of shadow
-    expect(l.scale).toBeCloseTo(1024 / 1164);
-    expect(l.height).toBe(Math.round(900 * (1024 / 1164)));
+  it('shrinks a large capture to 1024 px wide', () => {
+    // 1600×900 CSS viewport captured at 2x
+    const l = layoutFor(info(1600, 900), 3200, 1800);
+    expect(l).toMatchObject({ sx: 0, sy: 0, sw: 3200, sh: 1800, width: 1024 });
+    expect(l.scale).toBeCloseTo(1024 / 1600);
+    expect(l.height).toBe(Math.round(900 * (1024 / 1600)));
   });
 
   it('never enlarges a small capture', () => {
     const l = layoutFor(info(800, 600), 800, 600);
     expect(l).toMatchObject({ sw: 800, width: 800, height: 600, scale: 1 });
-  });
-
-  it('ignores a sidebar position that makes no sense', () => {
-    expect(layoutFor(info(1280, 800, 20), 1280, 800).sw).toBe(1280);
   });
 });
 

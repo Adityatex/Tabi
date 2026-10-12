@@ -1,4 +1,3 @@
-// entrypoints/options/sections/Other.tsx
 // Autofill profile, Appearance, Privacy & data, and About.
 import { useEffect, useState } from 'react';
 import { ArrowUpRight, Database, History, Keyboard, Trash2, X } from 'lucide-react';

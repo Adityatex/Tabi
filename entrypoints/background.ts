@@ -1,5 +1,4 @@
-// entrypoints/background.ts
-// Background service worker — message router, LLM API proxy, storage management
+// The background service worker: routes messages, runs agent tasks, calls the model and keeps storage.
 
 import { summarizePage, explainText, chatWithPage, callLLM, selectionMessages, WRITING_ACTIONS, planAgentStep, listModels, acceptsImages, type SelectionAction, type SelectionRequest, type TokenUsage } from '@/lib/api/llmClient';
 import {
@@ -31,16 +30,16 @@ import {
 } from '@/lib/schedules/scheduler';
 import { loadSkills, saveSkill, deleteSkill, type KeyValueStorage } from '@/lib/skills/store';
 import { writeSkillFromRun } from '@/lib/skills/writer';
+import { createHandlers } from '@/lib/mcp/handlers';
+import { cueOf } from '@/lib/dom/pageCue';
+import { Attention, toolbarIconPaths, type Scheme } from '@/lib/utils/toolbarIcon';
+import { DEFAULT_PORT, isValidToken, normalizeToken } from '@/mcp/src/protocol';
 
 /** chrome.storage.local, in the shape lib/skills/store expects. */
 const skillStorage: KeyValueStorage = {
   get: (key) => browser.storage.local.get(key) as Promise<Record<string, unknown>>,
   set: (items) => browser.storage.local.set(items),
 };
-import { createHandlers } from '@/lib/mcp/handlers';
-import { cueOf } from '@/lib/dom/pageCue';
-import { Attention, toolbarIconPaths, type Scheme } from '@/lib/utils/toolbarIcon';
-import { DEFAULT_PORT, isValidToken, normalizeToken } from '@/mcp/src/protocol';
 
 /** tabi-mcp bridge settings (chrome.storage.local); only this worker reads the token. */
 const MCP_KEY = 'tabi_mcp';
@@ -68,7 +67,6 @@ function releaseKeepAlive(): void {
 }
 
 export default defineBackground(() => {
-  console.log('[Tabi] Background service worker started');
   watchDetach();
 
   // ---- Toolbar icon (lib/utils/toolbarIcon.ts): ink to match the toolbar, an amber dot while a task needs you
@@ -427,7 +425,6 @@ export default defineBackground(() => {
   });
   applyMcp().catch((err) => console.error('[Tabi] MCP bridge:', err));
   // ---- Schedules: run a workflow or shortcut automatically (lib/schedules/)
-  /** The first line of a run's final message after its heading, for a notification. */
   /** The first line of a result, as plain text for a notification. */
   const resultLine = (message: string) =>
     (message.split('\n').map((l) => l.trim()).find((l) => l && !l.startsWith('#') && !l.startsWith('---')) ?? '')
@@ -487,9 +484,7 @@ export default defineBackground(() => {
     noteAttention(tabId, undefined);
   });
 
-  // Store the default API key on install
   browser.runtime.onInstalled.addListener(async (details: { reason: string }) => {
-    console.log('[Tabi] Installed — BYOK mode, no default key stored');
     // Chrome only puts content scripts into pages loaded after an install or
     // update: tabs already open have none, or the old version's, cut off from
     // this one. Add the new ones, so the cue, the toolbar on selected text and
@@ -584,7 +579,6 @@ export default defineBackground(() => {
     });
   });
 
-  // Central message handler
   browser.runtime.onMessage.addListener((message: any, _sender, sendResponse) => {
     const { action, payload } = message;
     // A content script is known by its tab, and can't name another. Tabi's own pages (the side panel,
@@ -615,7 +609,6 @@ export default defineBackground(() => {
       return;
     }
 
-    // Handle async operations
     (async () => {
       try {
         switch (action) {
@@ -1177,7 +1170,7 @@ export default defineBackground(() => {
       }
     })();
 
-    // Return true to indicate we'll send the response asynchronously
+    // Keeps the channel open for the reply sent above, after the awaits
     return true;
   });
 });

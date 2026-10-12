@@ -1,4 +1,3 @@
-// entrypoints/sidepanel/components/ModeGuess.tsx
 // In Auto, while the user types: what Tabi will do with it (act on the page,
 // or only answer from it), with one click to switch before sending.
 import { Check, MessageCircle, Zap } from 'lucide-react';

@@ -1,9 +1,9 @@
-# Privacy Policy — Tabi
+# Tabi privacy policy
 
 - No analytics, no tracking, no remote servers operated by us.
 - You choose the AI provider (Groq, Google AI Studio, Mistral, DeepSeek, OpenAI, OpenRouter, Kilo AI Gateway, OpenCode Zen, a local Ollama, or a custom OpenAI-compatible server) and bring your own API key.
 - API keys are stored only in `chrome.storage.local` on your device and are read only by the extension's background service worker. They are never shown back in full, and are sent only to the provider they belong to.
-- Page text / DOM snapshots are sent only to the provider you selected, and only when you trigger Summarize, Explain, Chat, the toolbar on selected text, or Agent actions. With Ollama they never leave your machine. Some free models on gateways such as Kilo may be used for training by their provider; the popup marks those models.
+- Page text and page snapshots are sent only to the provider you selected, and only when you trigger Summarize, Explain, Chat, the toolbar on selected text, or Agent actions. With Ollama they never leave your machine. Some free models on gateways such as Kilo may be used for training by their provider; Settings marks those models.
 - Keys and page content are only ever sent over HTTPS, except to servers on your own machine (localhost).
 - The `debugger` permission is used only while the agent is working on a task in that tab (Chrome shows a banner while it is active): to send real mouse and keyboard input, which can be turned off in Settings; to take the screenshots, if you turn screenshots on; and, only if you turn on "Let the agent run its own code", to run the agent's read-only code on the page. It never records your browsing.
 - A small helper script runs inside each frame of a page so the agent can work in embedded forms (e.g. payment iframes). It stays idle and reads nothing unless the agent is working on that tab.

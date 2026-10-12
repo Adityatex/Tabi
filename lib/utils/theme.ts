@@ -1,4 +1,3 @@
-// lib/utils/theme.ts
 // Light, dark, or the system's setting, for the side panel, Settings and
 // History. Saved in chrome.storage.local and mirrored in localStorage, which
 // all three pages share and can read before the first paint, so a page never

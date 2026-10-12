@@ -1,4 +1,3 @@
-// entrypoints/sidepanel/components/Setup.tsx
 // First run, before any provider is set up: choose one, paste its key, test
 // it. Three steps in the panel; everything else is in Settings.
 import { useState } from 'react';

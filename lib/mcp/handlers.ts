@@ -1,4 +1,3 @@
-// lib/mcp/handlers.ts
 // What the extension does for tabi-mcp's requests (background only). The
 // AI app on the other end reads pages and acts through the same snapshot and
 // action code as Tabi's own agent. Chrome specifics are injected so this

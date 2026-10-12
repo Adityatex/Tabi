@@ -1,4 +1,3 @@
-// lib/workflows/workflow.ts
 // Workflows: a task that worked, saved as its exact steps, to replay later
 // with no model calls. Each step names its element by description (see
 // describeElement in lib/agent/domSnapshot.ts), not by snapshot ID. If a step
@@ -71,8 +70,8 @@ export function workflowName(goal: string, steps: WorkflowStep[]): string {
   return slugify(slugify(words.slice(0, 6).join(' ')).slice(0, 40)) || 'workflow';
 }
 
-export const WORKFLOWS_KEY = 'tabi_workflows';
-export const MAX_WORKFLOWS = 100;
+const WORKFLOWS_KEY = 'tabi_workflows';
+const MAX_WORKFLOWS = 100;
 
 export async function loadWorkflows(storage: KeyValueStorage): Promise<Workflow[]> {
   const stored = (await storage.get(WORKFLOWS_KEY))[WORKFLOWS_KEY];

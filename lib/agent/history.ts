@@ -1,4 +1,3 @@
-// lib/agent/history.ts
 // Small helpers shared by the side panel and the agent runner
 // (background). No DOM access, so both bundles can import it.
 
@@ -23,7 +22,7 @@ export const PROMPT_RECENT_STEPS = 25;
  * stays the same for several calls in a row (a prompt-cache hit), instead of
  * shifting on every step.
  */
-export const PROMPT_TRIM_BLOCK = 10;
+const PROMPT_TRIM_BLOCK = 10;
 
 export function isAgentCommand(msg: string): boolean {
   const actionWords = /\b(go to|open|navigate|click|search|find|type|fill|submit|scroll|press|select|visit|browse|download|sign in|log in|sign up|play|watch|buy|add to cart|checkout|subscribe)\b/i;

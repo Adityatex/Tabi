@@ -1,5 +1,4 @@
-// lib/agent/domSnapshot.ts
-// Creates a compact, LLM-friendly representation of the current page DOM
+// The page as the model sees it: its interactive elements, numbered, and its visible text.
 
 import { CODE_EDITOR_SELECTOR } from '@/lib/agent/codeEditor';
 
@@ -504,9 +503,10 @@ function getAriaStates(el: Element): string[] | undefined {
 function describe(el: Element, id: number, frame: string | undefined): SnapshotElement {
   const tag = el.tagName.toLowerCase();
   const input = el as HTMLInputElement;
-  // Editors have no .value; show their text so the model can see what's typed
-  // A code editor's input box holds a scrap of the code at most: `read` gets all of it
-  const value = isButtonInput(el) || el.closest(CODE_EDITOR_SELECTOR) ? undefined // a button's text is already the label
+  // No value for a button input (its text is the label) or a code editor (its
+  // input box holds a scrap of the code; `read` gets all of it). A rich-text
+  // editor has no .value: show its text.
+  const value = isButtonInput(el) || el.closest(CODE_EDITOR_SELECTOR) ? undefined
     : ((el as HTMLElement).isContentEditable ? (el as HTMLElement).innerText : input.value) || undefined;
   const href = tag === 'a' ? (el as HTMLAnchorElement).href : undefined;
   const label = getLabel(el);
@@ -530,7 +530,7 @@ function describe(el: Element, id: number, frame: string | undefined): SnapshotE
   };
 }
 
-export function formatElement(el: SnapshotElement): string {
+function formatElement(el: SnapshotElement): string {
   let entry = `[${el.id}] <${el.tag}>`;
   if (el.role !== el.tag) entry += ` role="${el.role}"`;
   if (el.type) entry += ` type="${el.type}"`;
@@ -547,7 +547,7 @@ export function formatElement(el: SnapshotElement): string {
 }
 
 /** The line that heads a group's elements in a snapshot. */
-export const groupHeading = (group: string) => `── ${group} ──`;
+const groupHeading = (group: string) => `── ${group} ──`;
 
 /** An element with the question or section it belongs to, for a line on its own (find results). */
 export const formatWithGroup = (el: SnapshotElement) => (el.group ? `${formatElement(el)} (under "${el.group}")` : formatElement(el));
@@ -753,7 +753,7 @@ export function renderSnapshot(parts: SnapshotParts): { text: string; elements: 
   const { elements, distance, remoteTexts } = parts;
   lastElements = elements;
 
-  // Collect landmark text for page context
+  // Headings, for context
   const landmarks: string[] = [];
   document.querySelectorAll('h1, h2, h3, title').forEach(el => {
     const text = (el as HTMLElement).innerText?.trim();
@@ -762,7 +762,6 @@ export function renderSnapshot(parts: SnapshotParts): { text: string; elements: 
     }
   });
 
-  // Build text representation
   const lines: string[] = [];
   lines.push(`PAGE: ${document.title}`);
   lines.push(`URL: ${window.location.href}`);

@@ -1,4 +1,3 @@
-// lib/agent/extract.ts
 // Structured extraction: the model says what it wants ("laptops: name, price,
 // RAM") and this code finds it, without the model writing any code. It looks
 // for the page's repeating items (table rows, lists, cards) or its label/value
@@ -19,9 +18,9 @@ export interface ExtractResult {
 }
 
 /** Most items returned; the rest are counted. */
-export const MAX_ITEMS = 30;
+const MAX_ITEMS = 30;
 /** Most linked pages read per extract. */
-export const MAX_FOLLOW = 10;
+const MAX_FOLLOW = 10;
 const FOLLOW_TIMEOUT_MS = 8000;
 const FOLLOW_CONCURRENCY = 3;
 
@@ -89,7 +88,7 @@ const RATING = /(\d(?:\.\d)?)\s*(?:out of 5|\/\s*5|stars?)/i;
 const DATE = /\b(?:\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*(?:\s+\d{4})?|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2}(?:,\s*\d{4})?|\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2}\/\d{2,4})\b/i;
 
 /** Label/value pairs inside an element: two-cell table rows, <dt>/<dd>, "Label: value" lines. */
-export function labelValues(root: Element | Document, text: TextOf): [string, string][] {
+function labelValues(root: Element | Document, text: TextOf): [string, string][] {
   const pairs: [string, string][] = [];
   for (const row of Array.from(root.querySelectorAll('tr'))) {
     const cells = Array.from(row.children).filter((c) => c.tagName === 'TH' || c.tagName === 'TD');
@@ -231,7 +230,7 @@ function filled(items: Item[], fields: string[]): number {
 }
 
 /** The details of the one thing a page shows (a product page): label/value pairs across it. */
-export function detailsOf(root: Document | Element, fields: string[], base: string, live = true): Item {
+function detailsOf(root: Document | Element, fields: string[], base: string, live = true): Item {
   const page = root.nodeType === 9 ? (root as Document).body ?? (root as Document).documentElement : root;
   const details = itemFrom(page as Element, fields, live ? liveText : plainText, base);
   delete details._link;

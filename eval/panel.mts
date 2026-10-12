@@ -1,4 +1,3 @@
-// eval/panel.mts
 // The end-to-end checks drive Tabi's side panel the way a user does. Chrome
 // won't let a test open the real side panel, so the panel page opens in a
 // window of its own, pinned to the test's tab (sidepanel.html?tab=<id>). It's

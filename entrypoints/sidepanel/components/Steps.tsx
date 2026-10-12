@@ -1,4 +1,3 @@
-// entrypoints/sidepanel/components/Steps.tsx
 // The step stream: one row per action in plain words, newest last and
 // anchored to the bottom. Earlier steps fold into one dashed row; a row
 // opens to show the element and the model that chose it.

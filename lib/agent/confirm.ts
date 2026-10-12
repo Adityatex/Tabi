@@ -1,4 +1,3 @@
-// lib/agent/confirm.ts
 // Which actions can't be undone, so the agent asks the user first: buying,
 // paying, sending, deleting, moving money, booking, applying. Judged from the
 // label of what the action sets off (described like a snapshot element, see

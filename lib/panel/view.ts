@@ -1,4 +1,3 @@
-// lib/panel/view.ts
 // What the side panel derives from a run (lib/agent/runner.ts RunView): the
 // mark's state, the status pill, the plan as items, the kind of failure. Pure
 // functions, so they're unit-tested apart from React.

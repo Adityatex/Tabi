@@ -1,4 +1,3 @@
-// eval/sites-e2e.mts
 // End-to-end check of the user's site lists (lib/agent/sites.ts). The test
 // pages are served on two sites: 127.0.0.1 and localhost. Through Settings,
 // localhost goes on the block list; a fake model then tries to go there and

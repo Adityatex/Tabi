@@ -4,11 +4,8 @@
   "description": "Tabi: an open-source, bring-your-own-key browser agent",
   "scripts": {
     "dev": "wxt",
-    "dev:firefox": "wxt -b firefox",
     "build": "wxt build",
-    "build:firefox": "wxt build -b firefox",
     "zip": "wxt zip",
-    "zip:firefox": "wxt zip -b firefox",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",

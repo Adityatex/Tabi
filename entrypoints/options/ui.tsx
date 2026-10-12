@@ -1,7 +1,6 @@
-// entrypoints/options/ui.tsx
-// The Settings page's building blocks, from the design handoff: section cards
-// with a header, toggle rows, labelled fields, inline notices, list rows and
-// empty states. Colours come from the tokens (assets/tabi.css).
+// The Settings page's building blocks: section cards with a header, toggle
+// rows, labelled fields, inline notices, list rows and empty states. Colours
+// come from the tokens (assets/tabi.css).
 import { useState, type ReactNode } from 'react';
 import { Check, ChevronsUpDown, CircleCheck, Coins, Copy, Info, TriangleAlert, X, type LucideIcon } from 'lucide-react';
 

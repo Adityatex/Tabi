@@ -1,13 +1,8 @@
-// lib/agent/runner.ts
-// The agent loop, run by the background service worker.
-//
-// It used to run in the page, which dies on every navigation: the loop saved
-// a session, the next page waited ~3.5s and resumed it, and two race bugs came
-// from that hand-off. Here the loop outlives page loads. The page's content
-// script is only eyes and hands (AGENT_SNAPSHOT / AGENT_EXECUTE), and the
-// side panel just displays the state pushed to it (AGENT_UPDATE).
-//
-// Chrome specifics are injected (RunnerDeps) so the loop can be unit-tested.
+// The agent loop. It runs in the background service worker so it survives
+// page loads; the page's content script only reads and acts (AGENT_SNAPSHOT,
+// AGENT_EXECUTE), and the side panel shows the state pushed to it
+// (AGENT_UPDATE). Chrome APIs come in through RunnerDeps, so the loop can be
+// unit-tested.
 
 import type { AgentAction } from '@/lib/agent/actionExecutor';
 import { parseAgentResponse } from '@/lib/agent/parseAction';
@@ -279,14 +274,14 @@ const MEMORY_CHARS_PER_PAGE = 400;
  * without noting what they need from it (comparing products, adding up
  * figures across pages), so the runner keeps these excerpts for them.
  */
-export function pageExcerpt(snapshotText: string): string {
+function pageExcerpt(snapshotText: string): string {
   const text = snapshotText.split('--- VISIBLE TEXT (excerpt) ---')[1] ?? '';
   const clean = text.replace(/\s+/g, ' ').trim();
   return clean.length > MEMORY_CHARS_PER_PAGE ? `${clean.slice(0, MEMORY_CHARS_PER_PAGE)}…` : clean;
 }
 
 /** "Pages you visited earlier" section for the prompt, leaving out the current page. */
-export function memorySection(visited: Map<string, string>, currentUrl: string | undefined): string {
+function memorySection(visited: Map<string, string>, currentUrl: string | undefined): string {
   const entries = [...visited].filter(([url]) => url !== currentUrl).slice(-MEMORY_PAGES);
   if (entries.length === 0) return '';
   const lines = entries.map(([url, excerpt]) => `- ${url}: ${excerpt}`);
@@ -573,7 +568,7 @@ export async function waitForPage(deps: Pick<RunnerDeps, 'getTab' | 'send' | 'sl
 }
 
 /** The plan as a checklist: "[x] a" → "☑ a", "[ ] b" → "☐ b". */
-export function formatPlan(plan: string[]): string {
+function formatPlan(plan: string[]): string {
   return plan.map((item) => {
     const m = item.match(/^\[([ xX✓]?)\]\s*(.*)$/);
     if (!m) return `- ${item}`;
@@ -592,7 +587,7 @@ function progressMessage(run: Run, footer: string): string {
  * the same goal, plan, history and page as the old one would have; this tells
  * it that it's continuing, not starting.
  */
-export function handoffNote(previous: string, next: string, reason?: string): string {
+function handoffNote(previous: string, next: string, reason?: string): string {
   const who = reason ? `${previous} ${reason}, so ${next} takes over from here.` : `${next} takes over from ${previous} here.`;
   return `(handoff) ${who} This task is already under way: `
     + 'plan items marked [x] are done, [ ] items are left, and the history above is everything done so far. Carry on from where it ends; don\'t start over.';
@@ -783,7 +778,7 @@ function runLog(run: Run): RunLog {
 }
 
 /** Short fingerprint of a page snapshot (FNV-1a), so repeats are cheap to spot. */
-export function hashText(text: string): string {
+function hashText(text: string): string {
   let h = 0x811c9dc5;
   for (let i = 0; i < text.length; i++) {
     h ^= text.charCodeAt(i);

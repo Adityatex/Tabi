@@ -1,4 +1,3 @@
-// lib/agent/sites.ts
 // The user's own rules for where the agent may act: a block list (never act
 // on these sites) and an optional allow list (only these, ask about others).
 // Checked in code, not by a model, so no page can argue its way past them.
@@ -15,8 +14,6 @@ export interface SiteRules {
   /** If not empty: act only on these; others need the user's OK. */
   allowed: string[];
 }
-
-export const NO_RULES: SiteRules = { blocked: [], allowed: [] };
 
 /**
  * blocked: on the block list. allowed: on the allow list. unlisted: there is

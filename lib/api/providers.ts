@@ -1,4 +1,3 @@
-// lib/api/providers.ts
 // LLM provider presets and settings. Every provider here speaks the OpenAI
 // chat-completions API, so one client (llmClient.ts) serves them all.
 
@@ -21,8 +20,8 @@ export interface ProviderPreset {
   freeModels?: string[];
   /**
    * Only set where it has been benchmarked. Model names change and get
-   * retired (Groq retired this project's original default), so for other
-   * providers Settings lists what the key can actually use via /models.
+   * retired, so for other providers Settings lists what the key can
+   * actually use, from /models.
    */
   defaultModel?: string;
   /**

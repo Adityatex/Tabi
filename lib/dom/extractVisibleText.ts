@@ -1,5 +1,4 @@
-// lib/dom/extractVisibleText.ts
-// Stage 2 — DOM text extraction engine using TreeWalker
+// The page's visible text, read with a TreeWalker.
 
 const EXCLUDED_TAGS = new Set([
   'SCRIPT', 'STYLE', 'NOSCRIPT', 'IFRAME', 'OBJECT',
@@ -33,23 +32,16 @@ function isExcludedTag(node: Node): boolean {
   return false;
 }
 
-/**
- * Extract all visible text content from the current page.
- * Uses TreeWalker for efficient DOM traversal.
- * Filters hidden elements, scripts, styles, etc.
- * Returns clean text capped at ~15,000 chars for API token limits.
- */
+/** The page's visible text, without scripts, styles and hidden elements, cut at MAX_TEXT_LENGTH. */
 export function extractVisibleText(): string {
   const walker = document.createTreeWalker(
     document.body,
     NodeFilter.SHOW_TEXT,
     {
       acceptNode(node: Node): number {
-        // Skip empty text nodes
         if (!node.textContent || node.textContent.trim().length === 0) {
           return NodeFilter.FILTER_REJECT;
         }
-        // Skip excluded tags and hidden elements
         if (isExcludedTag(node)) {
           return NodeFilter.FILTER_REJECT;
         }
@@ -70,13 +62,11 @@ export function extractVisibleText(): string {
     }
   }
 
-  // Join, collapse whitespace, remove excessive blank lines
   let result = textParts.join('\n');
   result = result.replace(/[ \t]+/g, ' ');
   result = result.replace(/\n{3,}/g, '\n\n');
   result = result.trim();
 
-  // Truncate if still too long
   if (result.length > MAX_TEXT_LENGTH) {
     result = result.substring(0, MAX_TEXT_LENGTH) + '\n\n[... text truncated for processing]';
   }

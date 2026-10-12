@@ -1,4 +1,3 @@
-// lib/history/view.ts
 // The History page's view of saved runs (lib/agent/timeline.ts): runs grouped
 // by day and filtered, and a run's timeline as the page shows it. Routine
 // stretches (steps that worked and the model calls between them) fold into

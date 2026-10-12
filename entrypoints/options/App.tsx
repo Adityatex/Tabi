@@ -1,4 +1,3 @@
-// entrypoints/options/App.tsx
 // Tabi's Settings page, a full tab: a nav on the left (grouped by what people
 // come to do) and one section at a time on the right. The section is in the
 // URL hash (#models, #safety...), so the side panel can link straight to it.

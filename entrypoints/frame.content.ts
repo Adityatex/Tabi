@@ -1,4 +1,3 @@
-// entrypoints/frame.content.ts
 // Runs inside every iframe so the agent can see and act in cross-origin
 // frames (e.g. Stripe-style payment forms) that the top page can't read.
 // It does nothing until the top page's agent asks (see lib/agent/frames.ts).

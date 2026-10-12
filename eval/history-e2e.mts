@@ -1,4 +1,3 @@
-// eval/history-e2e.mts
 // End-to-end check of the run timeline (lib/agent/timeline.ts) and the
 // History page. A fake model signs in on a test page (typing a password),
 // then says done. The run must be saved, listed, and shown step by step

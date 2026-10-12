@@ -1,6 +1,5 @@
-// lib/api/llmClient.ts
 // LLM client for any OpenAI-compatible provider (Groq, DeepSeek, OpenAI,
-// OpenRouter, Ollama, custom). Runs ONLY in the background service worker.
+// OpenRouter, Ollama, custom). Only the background service worker calls it.
 
 import { withTimeout, formatError } from '@/lib/utils/errorHandler';
 import { PROVIDERS, type LLMConfig } from '@/lib/api/providers';
@@ -15,7 +14,7 @@ const MAX_RETRIES = 3;
 /** Parameter fixes (see adaptParams) attempted per request before giving up. */
 const MAX_PARAM_FIXES = 3;
 // The snapshot budgets its own size (SNAPSHOT_BUDGET); this only guards
-// against a runaway page. Cutting it blindly used to hide whole page regions.
+// against a runaway page.
 const SNAPSHOT_SAFETY_CAP = 9000;
 
 function sleep(ms: number): Promise<void> {
@@ -120,7 +119,7 @@ export interface TokenUsage {
 }
 
 /** The provider or model refused tools; the refusal is remembered for this model. */
-export class ToolsUnsupportedError extends Error {
+class ToolsUnsupportedError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'ToolsUnsupportedError';
@@ -145,7 +144,7 @@ export class LLMError extends Error {
 }
 
 /** Per-day quota messages: Groq (TPD/RPD), Gemini (PerDay), and others' "per day". */
-export function isDailyLimit(message: string): boolean {
+function isDailyLimit(message: string): boolean {
   return /per ?day|\bTPD\b|\bRPD\b/i.test(message);
 }
 
@@ -479,9 +478,6 @@ export async function listModels(config: LLMConfig): Promise<ModelInfo[]> {
   return [...models.values()].sort((a, b) => Number(!!b.free) - Number(!!a.free) || a.id.localeCompare(b.id));
 }
 
-/**
- * Summarize page content
- */
 export async function summarizePage(text: string, config: LLMConfig): Promise<string> {
   return callLLM([
     {
@@ -495,9 +491,6 @@ export async function summarizePage(text: string, config: LLMConfig): Promise<st
   ], config);
 }
 
-/**
- * Explain selected text
- */
 export async function explainText(text: string, config: LLMConfig): Promise<string> {
   return callLLM([
     {
@@ -577,9 +570,7 @@ export function selectionMessages(r: SelectionRequest): ChatMessage[] {
   return [{ role: 'system', content: system }, { role: 'user', content: context }, ...turns];
 }
 
-/**
- * Free-form chat about the page content
- */
+/** A question about the page, answered from its text. */
 export async function chatWithPage(message: string, pageContext: string, config: LLMConfig): Promise<string> {
   return callLLM([
     {

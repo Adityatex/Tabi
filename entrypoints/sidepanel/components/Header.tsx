@@ -1,4 +1,3 @@
-// entrypoints/sidepanel/components/Header.tsx
 // The fixed top of the panel: the mark (it moves with the current tab's task),
 // the model in use, History and Settings, then the tab the panel is working on.
 import { ChevronDown, History, RefreshCw, Settings } from 'lucide-react';

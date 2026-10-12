@@ -1,4 +1,3 @@
-// lib/agent/codeEditor.ts
 // Writing into code editors (Monaco on LeetCode and VS Code for the web,
 // CodeMirror, Ace). Typing into one goes wrong: every Enter is auto-indented
 // and every bracket auto-closed, so code typed as keystrokes comes out
