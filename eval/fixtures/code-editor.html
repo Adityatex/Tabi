@@ -19,18 +19,32 @@
   <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/loader.js"></script>
   <script>
     require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs' } });
+    const params = new URLSearchParams(location.search);
+    // ?start=buggy: a solution that doesn't compile (the class's closing ';' is missing)
+    const start = params.get('start') === 'buggy'
+      ? 'class Solution {\npublic:\n    int add(int a, int b) {\n        return a + b;\n    }\n}'
+      : 'class Solution {\npublic:\n    int add(int a, int b) {\n        \n    }\n};';
+    // Judged like LeetCode, after a moment: a compile error names the line
+    const judge = (code) => {
+      const lines = code.replace(/\r\n/g, '\n').trimEnd().split('\n');
+      if (!/}\s*;\s*$/.test(lines.at(-1))) return `Compile Error\nLine ${lines.length}: Char 2: error: expected ';' after class`;
+      return /return\s+a\s*\+\s*b\s*;/.test(code) ? 'Accepted\nInput: a = 2, b = 3\nOutput: 5' : 'Wrong Answer\nInput: a = 2, b = 3\nExpected: 5';
+    };
     require(['vs/editor/editor.main'], () => {
       const editor = monaco.editor.create(document.getElementById('editor'), {
-        value: 'class Solution {\npublic:\n    int add(int a, int b) {\n        \n    }\n};',
+        value: start,
         language: 'cpp',
         ariaLabel: 'Code editor',
         automaticLayout: true,
         minimap: { enabled: false },
       });
-      if (new URLSearchParams(location.search).has('hide')) delete window.monaco;
+      if (params.has('hide')) delete window.monaco;
       document.getElementById('run').addEventListener('click', async () => {
-        document.getElementById('result').textContent = 'Accepted';
-        await fetch('/api/run', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: editor.getValue() }) });
+        const result = document.getElementById('result');
+        const code = editor.getValue();
+        result.textContent = 'Pending…';
+        await fetch('/api/run', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code }) });
+        setTimeout(() => { result.textContent = judge(code); }, 1500);
       });
     });
   </script>

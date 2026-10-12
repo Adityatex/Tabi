@@ -13,6 +13,12 @@ The new `code-editor` task uses a real Monaco editor (from jsDelivr). The task r
 | `code-editor` | 1/1 | 2/2 (2 calls each) |
 | `code-editor-paste` | 1/1 | 2/2 |
 
+Then, on LeetCode, Groq's model wrote a solution that didn't compile (a missing `;`). It got stuck trying to fix it: `read` on the editor returned its hidden input box's text, which is always `""`. The model asked three times and was paused. Now `read` on a code editor returns all its code with line numbers, so "Line 25: expected ';'" points at a line the model can see. A text box's `read` returns its value. The new `code-editor-fix` task starts from that broken code; the page judges each run after 1.5 s, like LeetCode.
+
+| | Mock | Live, Groq `qwen/qwen3.8-27b` |
+|---|---|---|
+| `code-editor-fix` | 1/1 | 2/2 (read, run, fix, run again; 5-6 calls) |
+
 ## Styled rating buttons: hidden radios inside their labels (2026-10-10)
 
 A real university feedback form stuck Groq's Qwen in a loop (searching for "Strongly Agree" again and again) and ran DeepSeek flash out of output tokens. Each rating is a `<label>` around a radio that CSS hides, with the option's text beside it; the question is a plain `<span>`; every course repeats the same questions. The snapshot skipped the hidden radios and didn't list labels, so the model saw nothing it could click. Now a hidden radio or checkbox with a visible label is listed through that label (described as the radio: text, value, checked), and a radio group that nothing names gets the text next to its options as its question. Separately, an answer cut off by the token cap before any text is asked again with twice the room (DeepSeek thinks inside the cap).

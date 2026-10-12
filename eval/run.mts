@@ -270,7 +270,7 @@ function mockPlanner(plan: (MockStep | MockStep[])[]) {
     };
     /** The action as the model would send it, or a string saying what's missing. */
     const resolve = (s: MockStep): object | string => {
-      if (s.action === 'done' || s.action === 'find' || s.action === 'extract' || s.action === 'run_code') return s;
+      if (s.action === 'done' || s.action === 'find' || s.action === 'extract' || s.action === 'run_code' || s.action === 'wait') return s;
       if (s.action === 'press_key') return { action: 'press_key', key: s.key, elementId: s.target ? findId(s.target) : undefined };
       const elementId = findId(s.target, s.group, 'nth' in s ? s.nth : 0);
       if (elementId === undefined) return `MOCK: no element matching ${s.target}${s.group ? ` under ${s.group}` : ''} in snapshot`;

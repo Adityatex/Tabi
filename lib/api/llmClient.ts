@@ -627,7 +627,7 @@ function actionsList(customCode: boolean): string {
 - {"action": "navigate", "url": "<full url>"} — Navigate to a URL
 - {"action": "scroll", "direction": "up"|"down"} — Scroll the page
 - {"action": "press_key", "key": "<key name>", "elementId": <optional number>} — Press a keyboard key (Enter, Tab, Escape, etc.)
-- {"action": "read", "elementId": <optional number>} — Read text content
+- {"action": "read", "elementId": <optional number>} — Read text content. On a [code editor], returns all its code with line numbers
 - {"action": "find", "text": "<words>"} — Search ALL elements on the page, including ones not listed in the snapshot; returns their IDs
 - {"action": "note", "text": "<facts>"} — Write down facts you will need later (prices, specs, amounts, names). Notes stay in your ACTION HISTORY after you leave the page
 - {"action": "wait", "text": "<milliseconds>"} — Wait for content to load

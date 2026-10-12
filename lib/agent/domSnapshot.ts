@@ -505,7 +505,8 @@ function describe(el: Element, id: number, frame: string | undefined): SnapshotE
   const tag = el.tagName.toLowerCase();
   const input = el as HTMLInputElement;
   // Editors have no .value; show their text so the model can see what's typed
-  const value = isButtonInput(el) ? undefined // its text, already the label
+  // A code editor's input box holds a scrap of the code at most: `read` gets all of it
+  const value = isButtonInput(el) || el.closest(CODE_EDITOR_SELECTOR) ? undefined // a button's text is already the label
     : ((el as HTMLElement).isContentEditable ? (el as HTMLElement).innerText : input.value) || undefined;
   const href = tag === 'a' ? (el as HTMLAnchorElement).href : undefined;
   const label = getLabel(el);

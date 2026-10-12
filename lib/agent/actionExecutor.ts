@@ -433,6 +433,26 @@ async function typeCode(root: HTMLElement, elementId: number, text: string, clea
   return `❌ Pasting ${what} into code editor [${elementId}] had no effect; it shows "${norm(shown).substring(0, 80)}"`;
 }
 
+/** Longest code `read` returns from a code editor. */
+const MAX_READ_CODE = 6000;
+
+/**
+ * read on a code editor: its code with line numbers, so compiler errors
+ * ("Line 25: expected ';'") point at a line the model can see.
+ */
+async function readCode(root: HTMLElement, elementId: number): Promise<string> {
+  const res = await codeInPage(root, null, false);
+  const whole = 'value' in res;
+  const code = whole ? res.value : visibleCode(root);
+  const lines = code.replace(/\r\n?/g, '\n').split('\n');
+  const width = String(lines.length).length;
+  let numbered = whole ? lines.map((l, i) => `${String(i + 1).padStart(width)}| ${l}`).join('\n') : code;
+  if (numbered.length > MAX_READ_CODE) numbered = `${numbered.slice(0, MAX_READ_CODE)}\n…`;
+  return whole
+    ? `📖 Code in code editor [${elementId}] (${lines.length} lines):\n${numbered}`
+    : `📖 Code editor [${elementId}], the lines on screen (it may hold more):\n${numbered}`;
+}
+
 async function typeText(elementId: number, text: string, clear: boolean): Promise<string> {
   const el = getElementById(elementId);
   if (!el) return `❌ Element [${elementId}] not found.`;
@@ -596,7 +616,11 @@ export async function executeAction(action: AgentAction): Promise<string> {
       }
       const el = getElementById(action.elementId);
       if (!el) return `❌ Element [${action.elementId}] not found.`;
-      return `📖 Content of [${action.elementId}]: "${el.innerText?.substring(0, 500) || ''}"`;
+      const editor = codeEditorRoot(el);
+      if (editor) return readCode(editor, action.elementId);
+      // A field's text is its value; its innerText is empty
+      const content = isTextField(el) ? el.value : el.innerText;
+      return `📖 Content of [${action.elementId}]: "${content?.substring(0, 500) || ''}"`;
     }
 
     case 'press_key': {

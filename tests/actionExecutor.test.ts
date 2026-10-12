@@ -205,6 +205,20 @@ describe('select on custom (ARIA) dropdowns', () => {
   });
 });
 
+describe('read', () => {
+  it('reads what a text box holds, not its (empty) inner text', async () => {
+    document.body.innerHTML = '<textarea data-tabi-id="0"></textarea>';
+    document.querySelector('textarea')!.value = 'draft reply';
+    expect(await executeAction({ action: 'read', elementId: 0 })).toBe('📖 Content of [0]: "draft reply"');
+  });
+
+  it('reads a code editor it can only see the lines of', async () => {
+    document.body.innerHTML = '<div class="monaco-editor"><textarea data-tabi-id="0"></textarea>'
+      + '<div class="view-line" style="top: 0px">int x;</div><div class="view-line" style="top: 19px">}</div></div>';
+    expect(await executeAction({ action: 'read', elementId: 0 })).toBe('📖 Code editor [0], the lines on screen (it may hold more):\nint x;\n}');
+  });
+});
+
 describe('note', () => {
   it('records the note in its result, which is what carries it across pages', async () => {
     expect(await executeAction({ action: 'note', text: 'Kite 14: 16 GB, $1,049' })).toBe('📝 Noted: Kite 14: 16 GB, $1,049');

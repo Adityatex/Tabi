@@ -21,6 +21,8 @@ export type MockStep =
   | { action: 'type' | 'clear_and_type'; target: RegExp; text: string; group?: RegExp }
   | { action: 'select'; target: RegExp; value: string; group?: RegExp }
   | { action: 'press_key'; key: string; target?: RegExp }
+  | { action: 'read'; target: RegExp; group?: RegExp }
+  | { action: 'wait'; text: string }
   | { action: 'find'; text: string }
   | { action: 'extract'; text: string; fields: string[]; follow?: boolean }
   /** Only used when the extension offers run_code (eval --custom-code). */
@@ -362,6 +364,26 @@ export const TASKS: Task[] = [
       { action: 'click', target: /"Run"/ },
     ],
   })),
+  {
+    // The LeetCode loop: run, read the compiler's error, read the code to find
+    // that line, fix it, run again
+    id: 'code-editor-fix',
+    category: 'hard',
+    start: '/code-editor.html?start=buggy',
+    goal: 'Run the code in the editor. If it fails, find the error, fix it in the editor and run it again, until it is accepted.',
+    check: r => {
+      const runs = r.events.filter(e => e.path === '/api/run').map(e => String(e.data.code).replace(/\r\n/g, '\n'));
+      const last = runs.at(-1) ?? '';
+      return runs.length >= 2 && /}\s*;\s*$/.test(last.trimEnd()) && /return\s+a\s*\+\s*b\s*;/.test(last);
+    },
+    mockPlan: [
+      { action: 'click', target: /"Run"/ },
+      { action: 'wait', text: '2000' },
+      { action: 'read', target: /\[code editor\]/ },
+      { action: 'clear_and_type', target: /\[code editor\]/, text: ADD_SOLUTION.replace('        if (a == 0) { return b; }\n', '') },
+      { action: 'click', target: /"Run"/ },
+    ],
+  },
   {
     id: 'contenteditable-message',
     category: 'hard',
