@@ -22,7 +22,3 @@ These live in GitHub's settings rather than in the code, so they're set by hand.
 | `ci.yml` → `check` | every push and PR | typecheck, unit tests, production build, uploads the unpacked extension |
 | `ci.yml` → `eval-mock` | every push and PR | end-to-end benchmark with a scripted planner (no API key); fails if a task regresses or a known issue starts passing |
 | `eval-live.yml` | manual (**Actions → Live eval → Run workflow**) | the benchmark against a real provider; needs that provider's secret. Groq's free tier allows about 200k tokens per model per day, which one full run can nearly use up |
-
-## Commits
-
-Commits are authored by the maintainer only. Don't add AI-assistant co-author trailers or "generated with" lines to commits or PR descriptions.
