@@ -150,7 +150,7 @@ entrypoints/
   frame.content.ts     the same inside cross-origin iframes
   sidepanel/           the side panel
   options/             Settings
-  history/             History
+  runs/                History (not history/: WXT would make that replace the browser's History page)
 lib/
   agent/               the agent loop, page snapshot, actions, safety checks
   api/                 providers and the OpenAI-compatible client

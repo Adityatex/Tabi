@@ -53,6 +53,15 @@ async function main(): Promise<void> {
   });
   try {
     const worker = context.serviceWorkers()[0] ?? await context.waitForEvent('serviceworker', { timeout: 15_000 });
+
+    // Tabi's History is a page of its own: it must never replace the browser's (Ctrl+H)
+    const manifest: any = await worker.evaluate(() => chrome.runtime.getManifest());
+    const browserHistory = await context.newPage();
+    await browserHistory.goto('chrome://history/').catch(() => {});
+    check('Tabi doesn’t replace the browser’s own pages, like History', !manifest.chrome_url_overrides && !(await browserHistory.title()).includes('Tabi'),
+      JSON.stringify(manifest.chrome_url_overrides ?? {}));
+    await browserHistory.close();
+
     await worker.evaluate((base) => chrome.storage.local.set({
       tabi_llm: { provider: 'custom', models: { custom: 'mock' }, keys: { custom: 'k' }, customBaseUrl: base },
       tabi_prefs: { trustedInput: false },
@@ -95,11 +104,11 @@ async function main(): Promise<void> {
     check('and the password masked', !JSON.stringify(stored).includes(PASSWORD) && JSON.stringify(stored).includes('••••'));
 
     // 3. The History page, from "See the full timeline" in the panel
-    const opened = context.waitForEvent('page', { predicate: (p) => p.url().includes('/history.html') });
+    const opened = context.waitForEvent('page', { predicate: (p) => p.url().includes('/runs.html') });
     await panel.getByRole('button', { name: 'See the full timeline' }).click();
     const history = await opened;
     await history.waitForLoadState();
-    check('it opens at that run', history.url().endsWith(`/history.html#${run?.id}`), history.url());
+    check('it opens at that run', history.url().endsWith(`/runs.html#${run?.id}`), history.url());
     const title = history.getByRole('heading', { level: 1 });
     await title.waitFor({ timeout: 10_000 });
     const rows = history.getByRole('navigation', { name: 'Runs' }).locator('button[data-run-id]');

@@ -35,7 +35,7 @@ npm run eval:<feature>   # one feature, end to end, in real Chromium with the bu
 | `eval:confirm` | Asking before what can't be undone, in the panel and for background tasks |
 | `eval:sites` | Blocked sites and the allow list |
 | `eval:parallel` | Background tasks: the limit on tasks at once, the queue, the tab group, notifications |
-| `eval:history` | The run timeline and History page: search, filters, export, delete, passwords masked |
+| `eval:history` | The run timeline and History page: search, filters, export, delete, passwords masked; Tabi never replaces the browser's own History page |
 | `eval:selection` | The toolbar on selected text: reading and writing tools, the chat window, where it stays off |
 | `eval:mcp` | `tabi-mcp`: pairing, and every tool from a real MCP client |
 

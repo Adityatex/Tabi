@@ -137,9 +137,9 @@ export default defineBackground(() => {
     runLogWrites = runLogWrites.then(async () => { await browser.storage.local.set({ [RUNS_KEY]: change(await loadRunLogs()) }); });
     return runLogWrites;
   }
-  /** The History page, at one run if given. */
+  /** The History page (runs.html: an entrypoint named "history" would take over the browser's own History page), at one run if given. */
   async function openHistory(runId?: string): Promise<void> {
-    const tab = await chrome.tabs.create({ url: browser.runtime.getURL(`/history.html${runId ? `#${runId}` : ''}` as any), active: true });
+    const tab = await chrome.tabs.create({ url: browser.runtime.getURL(`/runs.html${runId ? `#${runId}` : ''}` as any), active: true });
     chrome.windows.update(tab.windowId, { focused: true });
   }
 
