@@ -75,7 +75,7 @@ jobs:
       - name: Run tasks as /shortcuts from the picker (mock)
         run: npm run eval:mock -- --task login,checkout-flow --shortcuts --timeout 45
 
-      - name: A scheduled workflow runs on its alarm (real Chrome alarm, background tab, notification)
+      - name: A scheduled workflow runs on its alarm (real Chrome alarm, background tab, notification), a missed run after a restart, delete with its workflow
         run: npm run eval:schedule
 
       - name: Parallel background tasks respect the limit (tab group, queue, notifications)
@@ -98,6 +98,12 @@ jobs:
 
       - name: Toolbar on selected text (explain, ask, continue in panel, not in fields, per-site and off, never in the agent's view)
         run: npm run eval:selection
+
+      - name: Routines (workflow replay and repair, shortcut blanks, rename and delete with schedules, site skills)
+        run: npm run eval:routines
+
+      - name: Backup providers (rate limit mid-task, resting provider skipped, all refused)
+        run: npm run eval:providers
 
       - name: Save as skill, then reuse it (mock)
         run: npm run eval:mock -- --task login --trials 2 --learn --timeout 45

@@ -76,6 +76,21 @@ export async function deleteSchedule(deps: SchedulerDeps, id: string): Promise<S
   return next;
 }
 
+/**
+ * A workflow or shortcut was renamed (`to`) or deleted (`to` null): its
+ * schedules follow it, or go with it rather than fail at their next run.
+ * Returns how many changed.
+ */
+export async function retargetSchedules(deps: SchedulerDeps, kind: Schedule['kind'], from: string, to: string | null): Promise<number> {
+  const all = await loadSchedules(deps.storage);
+  const hit = all.filter((s) => s.kind === kind && s.name === from);
+  if (!hit.length) return 0;
+  const next = to === null ? all.filter((s) => !hit.includes(s)) : all.map((s) => (hit.includes(s) ? { ...s, name: to } : s));
+  await storeSchedules(deps.storage, next);
+  if (to === null) for (const s of hit) deps.clearAlarm(alarmName(s.id));
+  return hit.length;
+}
+
 export async function setEnabled(deps: SchedulerDeps, id: string, enabled: boolean): Promise<Schedule[]> {
   const schedule = await update(deps, id, (s) => ({ ...s, enabled, nextRun: nextRunAt(s, deps.now()) }));
   if (schedule) arm(deps, schedule);

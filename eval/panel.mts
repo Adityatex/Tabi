@@ -12,11 +12,12 @@ export function extensionId(worker: Worker): string {
   return new URL(worker.url()).host;
 }
 
-/** Chrome's id for the tab showing `page`. */
+/** Chrome's id for the tab showing `page`: the newest, when several show the same address. */
 export async function tabIdOf(worker: Worker, page: Page): Promise<number> {
   const url = page.url();
   for (let i = 0; i < 20; i++) {
-    const id = await worker.evaluate((u: string) => chrome.tabs.query({}).then((tabs: any[]) => tabs.find((t) => t.url === u)?.id), url);
+    const id = await worker.evaluate((u: string) => chrome.tabs.query({})
+      .then((tabs: any[]) => tabs.filter((t) => t.url === u).reduce((max: number | undefined, t) => Math.max(max ?? t.id, t.id), undefined)), url);
     if (typeof id === 'number') return id;
     await page.waitForTimeout(100);
   }

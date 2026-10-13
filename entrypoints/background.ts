@@ -23,10 +23,10 @@ import { PREFS_KEY, DEFAULT_PREFS, type AgentPrefs } from '@/lib/agent/prefs';
 import { BridgeClient, type BridgeStatus } from '@/lib/mcp/bridgeClient';
 import { parseSkill, formatSkill, slugify, type Skill } from '@/lib/skills/skill';
 import { loadWorkflows, saveWorkflow, deleteWorkflow, workflowName, type Workflow } from '@/lib/workflows/workflow';
-import { loadShortcuts, saveShortcut, deleteShortcut, fillPrompt, blanks } from '@/lib/shortcuts/shortcut';
+import { loadShortcuts, saveShortcut, deleteShortcut, fillPrompt, blanks, shortcutName } from '@/lib/shortcuts/shortcut';
 import { loadSchedules } from '@/lib/schedules/schedule';
 import {
-  saveSchedule, deleteSchedule, setEnabled, runSchedule, onScheduleAlarm, syncSchedules, type SchedulerDeps,
+  saveSchedule, deleteSchedule, setEnabled, runSchedule, onScheduleAlarm, syncSchedules, retargetSchedules, type SchedulerDeps,
 } from '@/lib/schedules/scheduler';
 import { loadSkills, saveSkill, deleteSkill, type KeyValueStorage } from '@/lib/skills/store';
 import { writeSkillFromRun } from '@/lib/skills/writer';
@@ -992,13 +992,23 @@ export default defineBackground(() => {
           }
 
           case 'SAVE_SHORTCUT': {
-            const shortcuts = await saveShortcut(skillStorage, { name: String(payload?.name ?? ''), prompt: String(payload?.prompt ?? '') });
+            // original: the shortcut being edited. Renamed, the old one goes and its schedules follow the new name.
+            const prompt = String(payload?.prompt ?? '');
+            const name = slugify(String(payload?.name ?? '')) || shortcutName(prompt);
+            const original = slugify(String(payload?.original ?? ''));
+            let shortcuts = await saveShortcut(skillStorage, { name, prompt });
+            if (original && original !== name) {
+              shortcuts = await deleteShortcut(skillStorage, original);
+              await retargetSchedules(schedulerDeps, 'shortcut', original, name);
+            }
             sendResponse({ success: true, data: shortcuts });
             break;
           }
 
           case 'DELETE_SHORTCUT': {
-            sendResponse({ success: true, data: await deleteShortcut(skillStorage, String(payload?.name ?? '')) });
+            const name = String(payload?.name ?? '');
+            const data = await deleteShortcut(skillStorage, name);
+            sendResponse({ success: true, data, schedulesRemoved: await retargetSchedules(schedulerDeps, 'shortcut', name, null) });
             break;
           }
 
@@ -1022,7 +1032,9 @@ export default defineBackground(() => {
           }
 
           case 'DELETE_WORKFLOW': {
-            sendResponse({ success: true, data: await deleteWorkflow(skillStorage, String(payload?.name ?? '')) });
+            const name = String(payload?.name ?? '');
+            const data = await deleteWorkflow(skillStorage, name);
+            sendResponse({ success: true, data, schedulesRemoved: await retargetSchedules(schedulerDeps, 'workflow', name, null) });
             break;
           }
 

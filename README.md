@@ -162,7 +162,7 @@ eval/                  end-to-end benchmark and feature checks
 tests/                 unit tests
 ```
 
-Repository settings and how CI is organised: [docs/MAINTAINING.md](docs/MAINTAINING.md).
+What is tested, and a step-by-step checklist for testing by hand: [docs/TESTING.md](docs/TESTING.md). Repository settings and how CI is organised: [docs/MAINTAINING.md](docs/MAINTAINING.md).
 
 ## License
 

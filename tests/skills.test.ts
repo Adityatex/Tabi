@@ -62,6 +62,13 @@ describe('picking skills', () => {
     expect(pickSkills(skills, 'Log in', 'https://shop.test/')).toEqual([]); // same site, different task
   });
 
+  it('keeps a skill for one site off other sites, however well it fits (it can still be chosen by /name)', () => {
+    const skills = [skill('shop-order-status', 'Check the delivery status of an order', ['shop.test'])];
+    expect(pickSkills(skills, 'Check the delivery status of my order', 'https://shop.test/').map((s) => s.name)).toEqual(['shop-order-status']);
+    expect(pickSkills(skills, 'Check the delivery status of my order', 'https://other.test/')).toEqual([]);
+    expect(skillsSection(skills, 'Check the delivery status of my order', 'https://other.test/', new Set())).toContain('OTHER SKILLS');
+  });
+
   it('puts chosen skills in full under the goal and lists the others', () => {
     const skills = [skill('order-status', 'Check an order status on the shop', ['shop.test'], '1. Open Orders.'), skill('flights', 'Search flights')];
     const text = skillsSection(skills, 'check my order status', 'https://shop.test/', new Set());

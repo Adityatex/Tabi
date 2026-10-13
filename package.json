@@ -23,7 +23,9 @@
     "eval:history": "tsx eval/history-e2e.mts",
     "eval:settings": "tsx eval/settings-e2e.mts",
     "eval:skills": "tsx eval/skills-e2e.mts",
-    "eval:selection": "tsx eval/selection-e2e.mts"
+    "eval:selection": "tsx eval/selection-e2e.mts",
+    "eval:routines": "tsx eval/routines-e2e.mts",
+    "eval:providers": "tsx eval/providers-e2e.mts"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",

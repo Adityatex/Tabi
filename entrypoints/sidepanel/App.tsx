@@ -337,7 +337,7 @@ export default function App() {
               {run.status === 'stopped' && (blocked
                 ? <BlockedCard url={tab?.url} onAsk={() => { setMode('answer'); startOver(); }} onSettings={() => openSettings('safety')} />
                 : <StoppedCard run={run} onResume={() => startTask(run.goal)} onStartOver={startOver} />)}
-              {run.status === 'error' && <FailedCard run={run} provider={model.provider} onSettings={() => openSettings('models')} onRetry={() => startTask(run.goal)} onTimeline={() => openHistory(run.runId)} />}
+              {run.status === 'error' && <FailedCard run={run} provider={model.provider} hasBackup={model.choices.length > 1} onSettings={() => openSettings('models')} onRetry={() => startTask(run.goal)} onTimeline={() => openHistory(run.runId)} />}
             </div>
           )}
         </StepStream>

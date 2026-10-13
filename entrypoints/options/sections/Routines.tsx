@@ -10,6 +10,12 @@ import { Card, Empty, Field, IconButton, Notice, PageHead, TextInput, send } fro
 
 type Message = { ok: boolean; text: string } | null;
 
+/** "Deleted /name.", and its schedules, which go with it. */
+function deletedText(name: string, res: object): string {
+  const n = (res as { schedulesRemoved?: number }).schedulesRemoved ?? 0;
+  return `Deleted /${name}.${n ? ` Its ${n === 1 ? 'schedule was' : `${n} schedules were`} removed too.` : ''}`;
+}
+
 /** A row in a routine list: an icon, a name and what it does, and actions. */
 function Row({ icon: Icon, name, meta, detail, children }: { icon: typeof Zap; name: string; meta?: string; detail?: string; children: React.ReactNode }) {
   return (
@@ -100,7 +106,9 @@ export function Workflows() {
   };
   const remove = async (name: string) => {
     const res = await send<Workflow[]>('DELETE_WORKFLOW', { name });
-    if (res.success) setWorkflows(res.data ?? []);
+    if (!res.success) return;
+    setWorkflows(res.data ?? []);
+    setMessage({ ok: true, text: deletedText(name, res) });
   };
 
   return (
@@ -135,20 +143,18 @@ export function Shortcuts() {
 
   const save = async () => {
     if (!draft) return;
-    const { original, ...body } = draft;
-    let res = await send<Shortcut[]>('SAVE_SHORTCUT', body);
+    // original: renamed while editing, the old one is replaced (and its schedules follow)
+    const res = await send<Shortcut[]>('SAVE_SHORTCUT', draft);
     if (!res.success) return setMessage({ ok: false, text: res.error ?? 'Couldn’t save it' });
-    // Renamed while editing: drop the old one
-    if (original && !res.data!.some((s) => s.name === original && s.prompt === body.prompt.trim())) {
-      if (res.data!.some((s) => s.prompt === body.prompt.trim() && s.name !== original)) res = await send<Shortcut[]>('DELETE_SHORTCUT', { name: original });
-    }
     setShortcuts(res.data ?? []);
     setDraft(null);
     setMessage({ ok: true, text: 'Saved. Type / in the side panel to use it.' });
   };
   const remove = async (name: string) => {
     const res = await send<Shortcut[]>('DELETE_SHORTCUT', { name });
-    if (res.success) setShortcuts(res.data ?? []);
+    if (!res.success) return;
+    setShortcuts(res.data ?? []);
+    setMessage({ ok: true, text: deletedText(name, res) });
   };
   const filled = draft ? blanks(draft.prompt) : [];
 

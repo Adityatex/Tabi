@@ -136,13 +136,13 @@ export function relevance(skill: Skill, goal: string): number {
 
 /** Most skills put in the prompt without being asked for. */
 const MAX_AUTO_SKILLS = 2;
-/** How well (see relevance) a skill must fit the goal to be included unasked, on any site. */
+/** How well (see relevance) a skill for no particular site must fit the goal to be included unasked. */
 const AUTO_RELEVANCE = 0.5;
 
 /**
  * Which skills to show the model in full: ones for the current site that
- * relate to the goal, then the ones whose description best fits it. The rest
- * it can load by name (use_skill).
+ * relate to the goal, then ones for any site whose description best fits it.
+ * The rest it can load by name (use_skill).
  */
 export function pickSkills(skills: Skill[], goal: string, url: string | undefined): Skill[] {
   let host = '';
@@ -151,8 +151,9 @@ export function pickSkills(skills: Skill[], goal: string, url: string | undefine
   } catch { /* not a URL */ }
   const scored = skills
     .map((skill) => ({ skill, site: !!host && skill.sites.length > 0 && siteMatches(skill.sites, host), score: relevance(skill, goal) }))
-    // For this site and at all about this goal, or a strong fit anywhere
-    .filter(({ site, score }) => (site && score > 0) || score >= AUTO_RELEVANCE)
+    // For this site and at all about this goal, or (a skill for no site in particular) a strong fit anywhere.
+    // A skill for other sites stays out: its steps describe those sites.
+    .filter(({ skill, site, score }) => (site && score > 0) || (skill.sites.length === 0 && score >= AUTO_RELEVANCE))
     .sort((a, b) => Number(b.site) - Number(a.site) || b.score - a.score);
   return scored.slice(0, MAX_AUTO_SKILLS).map(({ skill }) => skill);
 }

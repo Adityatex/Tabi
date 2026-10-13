@@ -5,6 +5,7 @@
 import type { RunView } from '@/lib/agent/runner';
 import type { TabiMarkState } from '@/components/TabiMark';
 import type { StepView } from '@/lib/agent/stepView';
+import { PROVIDERS } from '@/lib/api/providers';
 
 /** The mark follows the current tab's task. */
 export function markState(run: RunView | null): TabiMarkState {
@@ -86,6 +87,19 @@ export function failureKind(error: string | undefined): FailureKind {
   if (/No API key|Choose a .* model|Set the server URL/i.test(e)) return 'setup';
   if (/timed out|didn't load|could not read the page|not load/i.test(e)) return 'page_load';
   return 'other';
+}
+
+/**
+ * The provider a failed run's error names ("OpenRouter rejected the API key..."),
+ * which isn't the main one when a backup failed last; '' if it names none.
+ */
+export function failedProvider(error: string | undefined): string {
+  const e = error ?? '';
+  const named = Object.values(PROVIDERS)
+    .map((p) => ({ label: p.label, at: e.indexOf(p.label) }))
+    .filter((p) => p.at >= 0)
+    .sort((a, b) => a.at - b.at || b.label.length - a.label.length);
+  return named[0]?.label ?? '';
 }
 
 /** The host of a URL without www, or '' for pages Tabi can't work on. */

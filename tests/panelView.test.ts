@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { markState, statusPill, planItems, formatElapsed, failureKind, siteOf, pathOf, when, foldLongRun, splitSources } from '@/lib/panel/view';
+import { markState, statusPill, planItems, formatElapsed, failureKind, failedProvider, siteOf, pathOf, when, foldLongRun, splitSources } from '@/lib/panel/view';
 import type { RunView } from '@/lib/agent/runner';
 
 const run = (over: Partial<RunView>): RunView => ({ goal: 'g', status: 'running', message: '', loading: true, step: 1, plan: [], updatedAt: 0, steps: [], ...over });
@@ -47,6 +47,12 @@ describe('the side panel view of a run', () => {
     expect(failureKind('Page timed out after 20s')).toBe('page_load');
     expect(failureKind('No API key for Groq. Add one in Settings.')).toBe('setup');
     expect(failureKind('something else')).toBe('other');
+  });
+
+  it('names the provider the error is about, which may be a backup', () => {
+    expect(failedProvider('OpenRouter rejected the API key (401): No auth credentials found.')).toBe('OpenRouter');
+    expect(failedProvider('Rate limit exceeded on Groq: try again in 42s')).toBe('Groq');
+    expect(failedProvider('Page timed out after 20s')).toBe('');
   });
 
   it('splits a URL for the site row', () => {

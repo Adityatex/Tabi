@@ -7,7 +7,7 @@ import {
 import TabiMark from '@/components/TabiMark';
 import type { RunView } from '@/lib/agent/runner';
 import { copyCodeOnClick, renderMarkdown } from '@/lib/utils/markdown';
-import { failureKind, formatElapsed, planItems, siteOf } from '@/lib/panel/view';
+import { failedProvider, failureKind, formatElapsed, planItems, siteOf } from '@/lib/panel/view';
 
 const card = 'bg-surface border border-border rounded-card p-[14px]';
 
@@ -141,20 +141,25 @@ export function StoppedCard({ run, onResume, onStartOver }: StoppedProps) {
 
 interface FailedProps {
   run: RunView;
-  /** "Groq", for "Groq rejected your API key". */
+  /** "Groq", for "Groq rejected your API key", unless the error names another (a backup). */
   provider: string;
+  /** Backups are set up, so "add a backup" is no help. */
+  hasBackup: boolean;
   onSettings: () => void;
   onRetry: () => void;
   onTimeline: () => void;
 }
 
-export function FailedCard({ run, provider, onSettings, onRetry, onTimeline }: FailedProps) {
+export function FailedCard({ run, provider: main, hasBackup, onSettings, onRetry, onTimeline }: FailedProps) {
   const error = run.outcome ?? 'Something went wrong.';
   const kind = failureKind(error);
+  const provider = failedProvider(error) || main;
   const steps = stepCount(run);
   const copy = {
     bad_key: { icon: KeyRound, title: `${provider || 'Your provider'} rejected your API key`, body: 'The key may have been revoked or copied incompletely. Nothing on the page was changed.' },
-    rate_limit: { icon: Gauge, title: `${provider || 'Your provider'} hit its rate limit`, body: `The task stopped at step ${steps + 1}. Add a backup provider and Tabi switches over on its own next time.` },
+    rate_limit: { icon: Gauge, title: `${provider || 'Your provider'} hit its rate limit`, body: hasBackup
+      ? `The task stopped at step ${steps + 1}, and your backups couldn’t take over either. Retry in a minute.`
+      : `The task stopped at step ${steps + 1}. Add a backup provider and Tabi switches over on its own next time.` },
     model: { icon: Settings, title: 'That model isn’t available', body: 'Your key can’t use the chosen model. Pick another in Settings.' },
     setup: { icon: Settings, title: 'Tabi isn’t set up yet', body: 'Choose a provider, paste your key and pick a model in Settings.' },
     page_load: { icon: WifiOff, title: 'The page didn’t load', body: 'Check the tab, then retry.' },
@@ -168,10 +173,10 @@ export function FailedCard({ run, provider, onSettings, onRetry, onTimeline }: F
       <div className="mt-[6px] leading-[1.5]">{copy.body}</div>
       <div className="font-mono text-[11px] text-muted mt-2 [overflow-wrap:anywhere]" data-testid="error">{error.slice(0, 240)}</div>
       <div className="flex gap-[6px] mt-3 flex-wrap">
-        {fix || kind === 'rate_limit'
+        {fix || (kind === 'rate_limit' && !hasBackup)
           ? <button type="button" className="btn btn-primary h-[30px]" onClick={onSettings}>{kind === 'rate_limit' ? <Plus size={12} aria-hidden /> : <Settings size={12} aria-hidden />}{kind === 'rate_limit' ? 'Add a backup' : 'Fix in Settings'}</button>
           : <button type="button" className="btn btn-primary h-[30px]" onClick={onRetry}><RotateCw size={12} aria-hidden />Retry</button>}
-        {(fix || kind === 'rate_limit') && <button type="button" className="btn btn-secondary h-[30px]" onClick={onRetry}>Retry</button>}
+        {(fix || (kind === 'rate_limit' && !hasBackup)) && <button type="button" className="btn btn-secondary h-[30px]" onClick={onRetry}>Retry</button>}
         {!fix && run.runId && <button type="button" className="btn btn-quiet h-[30px]" onClick={onTimeline}>Open timeline</button>}
       </div>
     </div>

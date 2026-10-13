@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { nextRunAt, describeFrequency, scheduleProblem, loadSchedules, type Schedule } from '@/lib/schedules/schedule';
 import {
-  saveSchedule, deleteSchedule, setEnabled, runSchedule, onScheduleAlarm, syncSchedules, alarmName, type SchedulerDeps,
+  saveSchedule, deleteSchedule, setEnabled, runSchedule, onScheduleAlarm, syncSchedules, retargetSchedules, alarmName, type SchedulerDeps,
 } from '@/lib/schedules/scheduler';
 import type { KeyValueStorage } from '@/lib/skills/store';
 
@@ -128,5 +128,26 @@ describe('the scheduler', () => {
     expect(alarms.get(alarmName(upcoming.id))).toBe(at(2, 9, 0));
     await syncSchedules(deps); // the worker starts again: nothing runs twice
     expect(deps.run).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('schedules follow what they run', () => {
+  it('go when their workflow is deleted, alarms and all, leaving the others', async () => {
+    const { deps, alarms, storage } = fake();
+    await saveSchedule(deps, daily);
+    await saveSchedule(deps, { ...daily, time: '09:00' });
+    const [, , other] = await saveSchedule(deps, { ...daily, name: 'other' });
+    expect(await retargetSchedules(deps, 'workflow', 'weekly-report', null)).toBe(2);
+    expect((await loadSchedules(storage)).map((s) => s.name)).toEqual(['other']);
+    expect([...alarms.keys()]).toEqual([alarmName(other.id)]);
+  });
+
+  it('take a shortcut’s new name, and ignore a workflow with the same name', async () => {
+    const { deps, storage } = fake();
+    await saveSchedule(deps, { kind: 'shortcut', name: 'price-check', args: 'shoes', url: 'https://shop.test/', frequency: 'daily', time: '09:00' });
+    await saveSchedule(deps, { ...daily, name: 'price-check' });
+    expect(await retargetSchedules(deps, 'shortcut', 'price-check', 'shoe-price')).toBe(1);
+    expect((await loadSchedules(storage)).map((s) => `${s.kind}:${s.name}`)).toEqual(['shortcut:shoe-price', 'workflow:price-check']);
+    expect(await retargetSchedules(deps, 'shortcut', 'nothing-here', null)).toBe(0);
   });
 });
