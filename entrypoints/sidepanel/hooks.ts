@@ -25,6 +25,7 @@ export interface TabInfo {
   id: number;
   url?: string;
   title?: string;
+  favicon?: string;
 }
 
 /**
@@ -38,10 +39,10 @@ export function useCurrentTab(): TabInfo | null {
     const pinned = Number(new URLSearchParams(location.search).get('tab')) || undefined;
     let windowId: number | undefined;
     let current: number | undefined = pinned;
-    const show = (t: { id?: number; url?: string; title?: string } | undefined) => {
+    const show = (t: { id?: number; url?: string; title?: string; favIconUrl?: string } | undefined) => {
       if (!t?.id) return;
       current = t.id;
-      setTab({ id: t.id, url: t.url, title: t.title });
+      setTab({ id: t.id, url: t.url, title: t.title, favicon: t.favIconUrl });
     };
     if (pinned) browser.tabs.get(pinned).then(show).catch(() => {});
     else {
@@ -54,8 +55,8 @@ export function useCurrentTab(): TabInfo | null {
       if (pinned || info.windowId !== windowId) return;
       browser.tabs.get(info.tabId).then(show).catch(() => {});
     };
-    const onUpdated = (tabId: number, change: { url?: string; title?: string; status?: string }, t: { id?: number; url?: string; title?: string }) => {
-      if (tabId === current && (change.url || change.title || change.status)) show(t);
+    const onUpdated = (tabId: number, change: { url?: string; title?: string; status?: string; favIconUrl?: string }, t: { id?: number; url?: string; title?: string; favIconUrl?: string }) => {
+      if (tabId === current && (change.url || change.title || change.status || change.favIconUrl)) show(t);
     };
     browser.tabs.onActivated.addListener(onActivated);
     browser.tabs.onUpdated.addListener(onUpdated);
@@ -139,29 +140,47 @@ export interface ModelInfo {
   label: string;
   /** "Groq" */
   provider: string;
+  /** "qwen/qwen3.8-27b" */
+  model: string;
   /** The main and fast models' full labels, to tell a backup taking over from them. */
   main: string;
   fast?: string;
   ready: boolean;
+  /** The providers set up with a key and model, main first, then the backups in order: the model menu. */
+  choices: ModelChoice[];
+}
+
+export interface ModelChoice {
+  id: ProviderId;
+  /** "Groq" */
+  name: string;
+  /** "qwen/qwen3.8-27b" */
+  model: string;
+  /** 0 for the main one, 1 for the first backup... */
+  rank: number;
 }
 
 /** The provider and model shown in the header, and whether irreversible actions ask first. */
 export function useSettings() {
-  const [model, setModel] = useState<ModelInfo>({ label: '', provider: '', main: '', ready: true });
+  const [model, setModel] = useState<ModelInfo>({ label: '', provider: '', model: '', main: '', ready: true, choices: [] });
   const [confirmOn, setConfirmOn] = useState(true);
   useEffect(() => {
     const load = async () => {
       const [settings, prefs] = await Promise.all([send('GET_LLM_SETTINGS'), send('GET_PREFS')]);
       if (settings.success) {
-        const { provider, models, ready, executor } = settings.data;
+        const { provider, models, ready, executor, fallbacks } = settings.data;
         const name: string = PROVIDERS[provider as ProviderId]?.label ?? provider;
         const id: string = models?.[provider] ?? '';
         setModel({
           label: id ? `${name} · ${id.replace(/^[^/]+\//, '')}` : '',
           provider: name,
+          model: id,
           main: `${name} · ${id}`,
           fast: executor ? `${PROVIDERS[executor.provider as ProviderId]?.label} · ${executor.model}` : undefined,
           ready: (ready as string[]).includes(provider),
+          choices: [provider, ...(fallbacks as string[])]
+            .map((p, rank) => ({ id: p as ProviderId, name: PROVIDERS[p as ProviderId]?.label ?? p, model: models?.[p] ?? '', rank }))
+            .filter((c) => (ready as string[]).includes(c.id)),
         });
       }
       if (prefs.success) setConfirmOn(prefs.data?.confirmRisky !== false);

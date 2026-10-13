@@ -16,7 +16,7 @@ import TasksStrip from './components/TasksStrip';
 import ModeGuess from './components/ModeGuess';
 import Setup from './components/Setup';
 import TabiMark from '@/components/TabiMark';
-import { askPage, send, useCurrentTab, useRuns, useSettings, useTasks } from './hooks';
+import { askPage, send, useCurrentTab, useRuns, useSettings, useTasks, type ModelChoice } from './hooks';
 import type { RunView } from '@/lib/agent/runner';
 import { isAgentCommand } from '@/lib/agent/history';
 import { blanks, fillPrompt, type PickerItem } from '@/lib/shortcuts/shortcut';
@@ -275,6 +275,10 @@ export default function App() {
   const openHistory = (runId?: string) => send('OPEN_HISTORY', { runId });
   /** Settings, at a section (models, safety, agent...) if given. */
   const openSettings = (section?: string) => send('OPEN_SETTINGS', { section });
+  const pickModel = async (choice: ModelChoice) => {
+    const res = await send('SET_MAIN_PROVIDER', { provider: choice.id });
+    if (!res.success) setNotice(res.error ?? `Couldn’t switch to ${choice.name}`);
+  };
   const control = (id: number, op: string) => send('TASK_CONTROL', { tabId: id, op }).then(() => setNudge((n) => n + 1));
 
   // ---- What the middle shows
@@ -367,7 +371,7 @@ export default function App() {
         url={tab?.url}
         workflows={pickerItems.filter((i) => i.kind === 'workflow')}
         recent={recent}
-        onCommand={(c) => runCommand(c)}
+        onSlash={() => setValue('/')}
         onRunWorkflow={(name) => startTask(pickerItems.find((i) => i.name === name)?.detail ?? name, { workflow: name })}
         onOpenRun={openHistory}
       />
@@ -378,10 +382,16 @@ export default function App() {
     <div className="h-screen flex flex-col bg-bg text-text min-w-0" data-panel-tab={tabId}>
       <Header
         mark={mark}
-        model={showRun && run?.replay === 'replaying' ? 'Replay · no AI' : model.label || 'No model yet'}
+        provider={model.label ? model.provider : ''}
+        model={model.model}
+        status={showRun && run?.replay === 'replaying' ? 'Replay · no AI' : undefined}
         backup={backup}
+        choices={model.choices}
         url={tab?.url}
-        onModel={() => openSettings('models')}
+        title={tab?.title}
+        favicon={tab?.favicon}
+        onPickModel={pickModel}
+        onManageModels={() => openSettings('models')}
         onHistory={() => openHistory()}
         onSettings={() => openSettings()}
       />

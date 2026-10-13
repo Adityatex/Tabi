@@ -2,7 +2,8 @@
 // would: save a provider (the key is shown masked and never in the page),
 // add a backup and move it up, turn off "Ask before buying" (a warning
 // shows and the preference is saved), add a schedule with the form, and
-// open Settings at a section from the side panel. No real model is called:
+// open Settings at a section from the side panel, switch the model from the
+// panel's menu, and see its home screen. No real model is called:
 // the provider's model list is answered by the test.
 //
 //   npm run build && npm run eval:settings   (-- --headed to watch)
@@ -147,6 +148,40 @@ async function main(): Promise<void> {
       JSON.stringify(profile));
     await settings.reload();
     check('the profile is there after a reload', await settings.getByRole('textbox', { name: 'Roll number' }).inputValue({ timeout: 5_000 }).catch(() => '') === '22CSE1043');
+
+    // 8. The panel's model menu: the providers set up, main first; picking a backup swaps the two
+    await panel.getByRole('button', { name: /^Model: Groq/ }).click();
+    const menu = panel.getByRole('menu', { name: 'Model' });
+    const listed = (await menu.getByRole('menuitemradio').allInnerTexts()).map((t) => t.replace(/\s+/g, ' ').trim());
+    check('the model menu lists the main provider and the backups, in order',
+      listed.length === 3 && /^Groq .*Main$/.test(listed[0]) && /^Ollama.*Backup 1$/.test(listed[1]) && /^OpenRouter.*Backup 2$/.test(listed[2]), JSON.stringify(listed));
+    await panel.keyboard.press('Escape');
+    check('Escape closes the model menu', !(await menu.isVisible()));
+    await panel.getByRole('button', { name: /^Model: Groq/ }).click();
+    await menu.getByRole('menuitemradio', { name: /OpenRouter/ }).click();
+    await panel.getByRole('button', { name: /^Model: OpenRouter/ }).waitFor({ timeout: 5_000 }).catch(() => {});
+    const swapped: any = (await worker.evaluate(() => chrome.storage.local.get('tabi_llm'))).tabi_llm;
+    check('picking a backup makes it the main model, and the old main takes its place',
+      swapped?.provider === 'openrouter' && JSON.stringify(swapped?.fallbacks) === '["ollama","groq"]'
+      && await panel.getByRole('button', { name: /^Model: OpenRouter/ }).isVisible(), JSON.stringify({ provider: swapped?.provider, fallbacks: swapped?.fallbacks }));
+    await panel.getByRole('button', { name: /^Model: OpenRouter/ }).click();
+    await menu.getByRole('menuitem', { name: 'Add a provider or change models' }).click();
+    await settings.waitForURL(/#models$/, { timeout: 5_000 }).catch(() => {});
+    check('the menu’s last item opens Settings at Models & keys', settings.url().endsWith('#models'), settings.url());
+
+    // 9. The home screen: no list of commands on a page (they're behind /), a welcome elsewhere
+    const idle = panel.getByTestId('idle');
+    check('on a page, the home screen points to / instead of listing commands',
+      await idle.getByRole('heading', { name: 'What should Tabi do here?' }).isVisible() && !(await idle.getByText('Summarize this page').count()));
+    await idle.getByRole('button', { name: 'Open the / menu' }).click();
+    const picker = panel.getByRole('listbox');
+    check('its / opens the menu of commands and routines', await picker.isVisible({ timeout: 3_000 }).catch(() => false)
+      && (await picker.innerText()).includes('Autofill') && await panel.getByRole('textbox', { name: /Ask about this page/ }).inputValue() === '/');
+    await panel.getByRole('textbox', { name: /Ask about this page/ }).fill('');
+    await page.goto('about:blank');
+    await idle.getByRole('heading', { name: 'Hi, I’m Tabi.' }).waitFor({ timeout: 5_000 }).catch(() => {});
+    const welcome = await idle.innerText().catch(() => '');
+    check('off the web, it welcomes you and shows the keys to know', welcome.includes('Hi, I’m Tabi.') && welcome.includes('Alt+T') && welcome.includes('Alt+J'), welcome.slice(0, 200));
   } finally {
     await context.close().catch(() => {});
     await fixtures.close();

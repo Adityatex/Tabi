@@ -32,7 +32,7 @@ Tabi isn't on the Chrome Web Store yet. To run it from source:
 
 ## Choose a provider
 
-The first time you open Tabi, it asks for a provider and an API key. You can change both, and add more, under **Settings › Models & keys**.
+The first time you open Tabi, it asks for a provider and an API key. You can change both, and add more, under **Settings › Models & keys**. Once you have more than one, the model menu at the top of the panel switches between them.
 
 | Provider | Get a key | Notes |
 |---|---|---|
@@ -61,7 +61,7 @@ Type in the side panel's box. **Auto** decides whether you're asking a question 
 
 While a task runs, the page shows a soft glow at its edge, an outline on what Tabi is about to touch, and a small **Tabi is working · Stop** pill. They turn amber when Tabi needs your answer. There's no step limit: the agent checks in every 50 steps (configurable) and pauses if it looks stuck.
 
-Type `/` for your shortcuts, workflows, skills and the built-in commands:
+Type `/` (or click it) for your shortcuts, workflows, skills and the built-in commands:
 
 - `/summarize`: summarize the page (also on the right-click menu).
 - `/explain`: explain the selected text.

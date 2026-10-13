@@ -194,6 +194,18 @@ export function resolveChain(settings: StoredLLMSettings): LLMConfig[] {
   return [resolveConfig(settings, settings.provider), ...backups];
 }
 
+/**
+ * Settings with `id` as the main provider. The old main takes its place in
+ * the backups, so picking a backup from the panel's model menu swaps the two.
+ */
+export function makeMain(settings: StoredLLMSettings, id: ProviderId): StoredLLMSettings {
+  if (id === settings.provider) return settings;
+  const fallbacks = settings.fallbacks ?? [];
+  const at = fallbacks.indexOf(id);
+  const next = at === -1 ? [settings.provider, ...fallbacks] : fallbacks.map((f) => (f === id ? settings.provider : f));
+  return { ...settings, provider: id, fallbacks: [...new Set(next)].filter((f) => f !== id) };
+}
+
 /** Config for the fast executor model, or null if none is set up or it lacks a key. */
 export function resolveExecutor(settings: StoredLLMSettings): LLMConfig | null {
   const choice = settings.executor;

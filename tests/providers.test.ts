@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  PROVIDERS, SETTINGS_KEY, readSettings, resolveConfig, validateBaseUrl, configProblem, maskKey,
+  PROVIDERS, SETTINGS_KEY, readSettings, resolveConfig, validateBaseUrl, configProblem, maskKey, makeMain,
   type StoredLLMSettings,
 } from '@/lib/api/providers';
 
@@ -96,5 +96,22 @@ describe('Kilo and OpenCode Zen presets', () => {
     const c = resolveConfig({ provider: 'opencode', models: { opencode: 'deepseek-v4-flash' }, keys: {} });
     expect(c.baseUrl).toBe('https://opencode.ai/zen/v1');
     expect(configProblem(c)).toMatch(/No API key for OpenCode Zen/);
+  });
+});
+
+describe('makeMain (the panel’s model menu)', () => {
+  const settings: StoredLLMSettings = { provider: 'deepseek', models: {}, keys: {}, fallbacks: ['groq', 'ollama'] };
+
+  it('swaps a backup with the main provider, keeping the backup order', () => {
+    expect(makeMain(settings, 'ollama')).toMatchObject({ provider: 'ollama', fallbacks: ['groq', 'deepseek'] });
+    expect(makeMain(settings, 'groq')).toMatchObject({ provider: 'groq', fallbacks: ['deepseek', 'ollama'] });
+  });
+
+  it('keeps the old main as the first backup when the new one wasn’t a backup', () => {
+    expect(makeMain(settings, 'openai')).toMatchObject({ provider: 'openai', fallbacks: ['deepseek', 'groq', 'ollama'] });
+  });
+
+  it('changes nothing when it is already the main one', () => {
+    expect(makeMain(settings, 'deepseek')).toBe(settings);
   });
 });

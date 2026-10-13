@@ -59,6 +59,7 @@ export default function Composer(props: Props) {
     if (value === '/') {
       setDismissed(false);
       onRefreshPicker();
+      box.current?.focus();
     }
   }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
   // Grows with its text, up to a few lines. Empty, it keeps its CSS height:
@@ -237,7 +238,15 @@ export default function Composer(props: Props) {
             <AppWindow size={12} aria-hidden />Background
           </button>
           <div className="flex-1" />
-          <span className="font-mono text-[11px] text-muted border border-border rounded-[4px] px-[5px] leading-[18px]" title="Type / for shortcuts, workflows, skills and commands">/</span>
+          <button
+            type="button"
+            onClick={() => { if (!value.trim()) onChange('/'); box.current?.focus(); }}
+            className="font-mono text-[11px] text-muted border border-border rounded-[4px] px-[5px] leading-[18px] hover:text-text hover:border-border-strong"
+            title="Shortcuts, workflows, skills and commands (or type /)"
+            aria-label="Open the / menu"
+          >
+            /
+          </button>
           <button
             type="button"
             onClick={onSubmit}

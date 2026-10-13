@@ -6,7 +6,7 @@ import {
   type RunnerDeps, type RunOptions, type RunView,
 } from '@/lib/agent/runner';
 import {
-  PROVIDERS, PROVIDER_IDS, SETTINGS_KEY, readSettings, resolveConfig, resolveChain, resolveExecutor, configProblem,
+  PROVIDERS, PROVIDER_IDS, SETTINGS_KEY, readSettings, resolveConfig, resolveChain, resolveExecutor, configProblem, makeMain,
   validateBaseUrl, maskKey, type LLMConfig, type ProviderId, type StoredLLMSettings,
 } from '@/lib/api/providers';
 import { formatError, withTimeout } from '@/lib/utils/errorHandler';
@@ -664,6 +664,19 @@ export default defineBackground(() => {
               success: true,
               data: { maskedKey: maskKey(settings.keys[provider] ?? ''), provider: settings.provider, fallbacks: settings.fallbacks },
             });
+            break;
+          }
+
+          case 'SET_MAIN_PROVIDER': {
+            // From the panel's model menu: one of the providers already set up
+            const { provider } = payload ?? {};
+            if (!isProvider(provider)) throw new Error('Unknown provider');
+            const settings = await loadSettings();
+            const problem = configProblem(resolveConfig(settings, provider));
+            if (problem) throw new Error(problem);
+            const next = makeMain(settings, provider);
+            await browser.storage.local.set({ [SETTINGS_KEY]: next });
+            sendResponse({ success: true, data: { provider: next.provider, fallbacks: next.fallbacks } });
             break;
           }
 
