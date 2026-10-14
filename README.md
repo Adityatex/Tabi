@@ -30,6 +30,10 @@ Tabi isn't on the Chrome Web Store yet. To run it from source:
 3. Click **Load unpacked** and choose the `.output/chrome-mv3` folder.
 4. Click the Tabi icon in the toolbar, or press **Alt+T**, to open the side panel.
 
+To update, pull, run `npm run build` again and click **Reload** on Tabi's card.
+
+> **Ctrl+H shows "Your file couldn't be accessed"?** Builds before October 14, 2026 replaced the browser's History page, and the browser can keep sending History to Tabi after an update. Remove Tabi, quit the browser completely and open it again, then **Load unpacked**. Removing an extension clears its settings, so note your keys first.
+
 ## Choose a provider
 
 The first time you open Tabi, it asks for a provider and an API key. You can change both, and add more, under **Settings › Models & keys**. Once you have more than one, the model menu at the top of the panel switches between them.
