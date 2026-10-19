@@ -12,9 +12,9 @@ npm run eval             # the benchmark with a real model (Groq by default; --p
 npm run eval:<feature>   # one feature, end to end, in real Chromium with the built extension
 ```
 
-**Unit tests** (`tests/`, 419 tests) cover the logic with no browser: the agent loop, page snapshots, actions, safety checks, providers and failover, workflows (recording, matching elements again, replay, repair), shortcuts (blanks), skills (parsing, picking), schedules (times, missed runs), the autofill profile, History, Markdown.
+**Unit tests** (`tests/`, 424 tests) cover the logic with no browser: the agent loop, page snapshots, actions, safety checks, providers and failover, workflows (recording, matching elements again, replay, repair), shortcuts (blanks), skills (parsing, picking), schedules (times, missed runs), the autofill profile, History, Markdown.
 
-**The benchmark** (`eval/`, 37 tasks) loads the built extension into Chromium, gives the agent tasks on local test pages through the real side panel, and grades each by the requests that reached the test server. CI runs it with a scripted model, plus these modes:
+**The benchmark** (`eval/`, 38 tasks) loads the built extension into Chromium, gives the agent tasks on local test pages through the real side panel, and grades each by the requests that reached the test server. CI runs it with a scripted model, plus these modes:
 
 | Mode | What it adds |
 |---|---|
@@ -46,7 +46,7 @@ What each area has, and what still needs a person.
 | Area | Automated | Needs a person |
 |---|---|---|
 | Ask about a page | Benchmark answers, quotes | Answer quality on real pages; clicking a quote highlights it |
-| Do a task | 37 benchmark tasks, live runs | Real sites, real mouse input (the `debugger` banner) |
+| Do a task | 38 benchmark tasks, live runs | Real sites, real mouse input (the `debugger` banner) |
 | Workflows | Save, replay, repair, update, home screen Run, Settings delete | A real site that changes; Settings › Run |
 | Shortcuts | Blanks, rename, delete, save from a task, the `/` menu | Using them day to day |
 | Skills | `/` menu, site rules, save from a task | Whether instructions actually change what the agent does |
@@ -62,6 +62,9 @@ What each area has, and what still needs a person.
 - Deleting a workflow or shortcut left its schedules behind, to fail at their next run. They're now removed with it, and Settings says so. Renaming a shortcut moves its schedules to the new name.
 - A skill saved for one site was put in full on any site when its description fit the task well, so the agent could follow one site's steps on another. A skill for particular sites is now used automatically only there; on other sites it's listed, and still used when chosen by `/name`.
 - When every provider failed, the card blamed the main provider ("Groq rejected your API key") even when it was only rate-limited and the backup's key was the one refused. It now names the provider the error is about, and doesn't suggest "Add a backup" to someone who has one.
+
+**Found by hand since:**
+- On an Oracle Academy assessment, the page sometimes ignored the click on an answer, so "Submit Answer" did nothing and the run looked stuck. Then the stuck pause refused to run the same steps again, even after **Try again** or a typed hint, so the run could never get past the question. A click on a radio is now checked: if the answer doesn't show as selected, Tabi clicks it once more, and if that fails too, it stops before Submit and tells the model. **Try again** now runs the steps, and a typed hint goes to the model first. Benchmark task `one-question-a-page`.
 
 ## Manual checklist
 

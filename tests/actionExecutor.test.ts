@@ -24,6 +24,39 @@ describe('click', () => {
     expect(document.querySelector<HTMLInputElement>('input')!.checked).toBe(true);
   });
 
+  // A quiz answer as <button role="radio" aria-checked>, selected on its nth click
+  const radio = (selectOn: number) => {
+    document.body.innerHTML = '<button role="radio" aria-checked="false" data-tabi-id="0">True</button>';
+    const el = document.querySelector('button')!;
+    let clicks = 0;
+    el.addEventListener('click', () => { if (++clicks === selectOn) el.setAttribute('aria-checked', 'true'); });
+    return () => clicks;
+  };
+
+  it('clicks a radio once when it takes', async () => {
+    const clicks = radio(1);
+    expect(await executeAction({ action: 'click', elementId: 0 })).toBe('✅ Clicked "True"');
+    expect(clicks()).toBe(1);
+  });
+
+  it('clicks a radio again when the page ignored the first click', async () => {
+    const clicks = radio(2);
+    expect(await executeAction({ action: 'click', elementId: 0 })).toBe('✅ Clicked "True"');
+    expect(clicks()).toBe(2);
+  });
+
+  it('fails a radio click that never shows as selected, so "Submit" after it doesn\'t run', async () => {
+    radio(99);
+    expect(await executeAction({ action: 'click', elementId: 0 })).toMatch(/^❌ Clicked "True", but it doesn't show as selected/);
+  });
+
+  it('takes a radio that doesn\'t say whether it is selected as clicked', async () => {
+    document.body.innerHTML = '<button role="radio" data-tabi-id="0">True</button><label data-tabi-id="1"><input type="radio" name="q">False</label>';
+    expect(await executeAction({ action: 'click', elementId: 0 })).toBe('✅ Clicked "True"');
+    expect(await executeAction({ action: 'click', elementId: 1 })).toBe('✅ Clicked "False"');
+    expect(document.querySelector('input')!.checked).toBe(true);
+  });
+
   it('fires mousedown before click for custom widgets', async () => {
     document.body.innerHTML = '<div role="button" data-tabi-id="0">Menu</div>';
     const events: string[] = [];

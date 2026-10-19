@@ -138,16 +138,30 @@ describe('checkpoints and stuck detection', () => {
     expect(executed).toHaveLength(2);
   });
 
-  it('after the user continues a stuck run, tells the model to change course', async () => {
+  it('when the user says keep going on a stuck run, runs what it chose, and asks again three tries later', async () => {
     let paused = 0;
+    const { deps } = fakeDeps(['{"action":"click","elementId":4}'], { onPause: () => { if (++paused === 2) stopRun(14); else resumeRun(14); } });
+    const result = await startRun(deps, 14, 'Click it');
+    expect(result.status).toBe('stopped');
+    expect(paused).toBe(2);
+    // Two tries, the user's "keep going" lets the third run, then three more before asking again
+    const executed = (deps.send as any).mock.calls.filter(([, m]: any) => m.action === 'AGENT_EXECUTE');
+    expect(executed).toHaveLength(5);
+  });
+
+  it('when the user writes what to do on a stuck run, the model reads it before anything runs', async () => {
     const { deps, prompts } = fakeDeps([
       '{"action":"click","elementId":4}', '{"action":"click","elementId":4}', '{"action":"click","elementId":4}',
-      '{"action":"done","summary":"gave up on the button"}',
-    ], { onPause: () => { paused++; resumeRun(14); } });
-    const result = await startRun(deps, 14, 'Click it');
+      '{"action":"done","summary":"picked an answer first"}',
+    ], { onPause: () => hintRun(16, 'Pick True or False first') });
+    const result = await startRun(deps, 16, 'Click it');
     expect(result.status).toBe('done');
-    expect(paused).toBe(1);
-    expect(prompts[3][2]).toBe('click [4] → ⏸️ not run: you chose this 3 times on this unchanged page. Do something different.');
+    expect(prompts[3].slice(-2)).toEqual([
+      '(note from Tabi) The user says: "Pick True or False first"',
+      'click [4] → ⏸️ not run: the user answered (above). Do what they say.',
+    ]);
+    const executed = (deps.send as any).mock.calls.filter(([, m]: any) => m.action === 'AGENT_EXECUTE');
+    expect(executed).toHaveLength(2);
   });
 
   it('does not count the same action as a repeat when the page changed', async () => {

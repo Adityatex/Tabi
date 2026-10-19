@@ -120,12 +120,12 @@ export default function AskCard({ run, onAnswer, onContinue, onStop, onReview }:
       </div>
       <div className="mt-1 text-[13px] leading-[1.45] [text-wrap:pretty]">
         {stuck
-          ? 'You may need to sign in, or the page may need something done first. Give Tabi a hint below, or let it try another way.'
+          ? 'You may need to sign in, or the page may need something done first. Tell Tabi what to do below, or let it try again.'
           : `${progress ? `${progress}. ` : ''}You can also give Tabi a hint below.`}
       </div>
       <div className="flex items-center gap-[6px] mt-3 flex-wrap">
         <button ref={first} type="button" className="btn h-8 px-[14px] bg-amber-solid text-amber-on font-semibold" onClick={onContinue}>
-          <Play size={13} aria-hidden />{stuck ? 'Try another way' : 'Keep going'}
+          <Play size={13} aria-hidden />{stuck ? 'Try again' : 'Keep going'}
         </button>
         <button type="button" className="btn btn-secondary h-8" onClick={onReview}>Review steps</button>
         <div className="flex-1" />

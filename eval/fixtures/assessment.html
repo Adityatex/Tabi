@@ -1,0 +1,59 @@
+<!doctype html>
+<html><head><title>Take the Assessment</title>
+<meta charset="utf-8">
+<!-- Built like Oracle Academy's assessments: one question per page, answers are
+     <button role="radio"> with aria-checked, and "Submit Answer" does nothing
+     until one is chosen. Question 2 ignores the first click on an answer, as
+     a page busy saving the last one might. -->
+<style>
+  body { font-family: sans-serif; margin: 0; background: #f4f4f4; }
+  main { max-width: 640px; margin: 40px auto; background: #fff; padding: 24px; border-radius: 6px; }
+  [role=radio] { display: block; width: 100%; text-align: left; margin: 8px 0; padding: 10px; border: 1px solid #bbb; background: #fff; border-radius: 4px; font: inherit; cursor: pointer; }
+  [role=radio][aria-checked=true] { border-color: #c74634; background: #fbeae8; }
+  #submit { margin-top: 16px; padding: 10px 18px; background: #c74634; color: #fff; border: 0; border-radius: 4px; font: inherit; }
+</style></head>
+<body><main>
+  <p id="progress"></p>
+  <h2 id="question"></h2>
+  <p>Choices - Just one correct!</p>
+  <div role="radiogroup" id="choices" aria-labelledby="question"></div>
+  <button type="button" id="submit">Submit Answer</button>
+</main>
+<script>
+  const QUESTIONS = [
+    ['Information Entropy quantifies how much information there is in an event. True or False?', ['True', 'False']],
+    ['Decision trees work better if they have more access to more data. True or False?', ['True', 'False']],
+    ['Binary Trees are made up of a structure known as a:', ['Nodule', 'Point', 'Node', 'Intersect']],
+  ];
+  const n = Number(new URLSearchParams(location.search).get('q') || 1);
+  const main = document.querySelector('main');
+  if (n > QUESTIONS.length) {
+    main.innerHTML = '<h2>Assessment complete</h2><p>Your answers have been recorded.</p>';
+  } else {
+    const [text, answers] = QUESTIONS[n - 1];
+    document.getElementById('progress').textContent = `Question ${n} of ${QUESTIONS.length}`;
+    document.getElementById('question').textContent = text;
+    let ignore = n === 2;
+    let chosen = null;
+    const choices = document.getElementById('choices');
+    for (const answer of answers) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.setAttribute('role', 'radio');
+      b.setAttribute('aria-checked', 'false');
+      b.textContent = answer;
+      b.addEventListener('click', () => {
+        if (ignore) { ignore = false; return; }
+        for (const other of choices.children) other.setAttribute('aria-checked', String(other === b));
+        chosen = answer;
+      });
+      choices.append(b);
+    }
+    document.getElementById('submit').addEventListener('click', async () => {
+      if (!chosen) return; // like the real one: no answer, nothing happens
+      await fetch('/api/assessment', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ q: n, answer: chosen }) });
+      location.search = `?q=${n + 1}`;
+    });
+  }
+</script>
+</body></html>

@@ -256,6 +256,32 @@ async function clickElement(el: HTMLElement): Promise<ClickReport> {
   return { trusted: false };
 }
 
+/**
+ * Whether a radio is selected, for checking a click on it: a native radio (or
+ * the label standing in for one) or role="radio" with aria-checked. Null when
+ * the page doesn't say. Once the page replaces the element, it can't be told,
+ * so that counts as selected.
+ */
+function radioState(el: HTMLElement): (() => boolean) | null {
+  const input = el.tagName === 'LABEL' ? (el as HTMLLabelElement).control : el;
+  if (input?.tagName === 'INPUT') {
+    return (input as HTMLInputElement).type === 'radio' ? () => !input.isConnected || (input as HTMLInputElement).checked : null;
+  }
+  if (el.getAttribute('role') === 'radio' && el.hasAttribute('aria-checked')) {
+    return () => !el.isConnected || el.getAttribute('aria-checked') === 'true';
+  }
+  return null;
+}
+
+/** Wait up to `ms` for a check to pass (the page may update a moment after a click). */
+async function becomes(check: () => boolean, ms = 600): Promise<boolean> {
+  for (let waited = 0; waited < ms; waited += 100) {
+    if (check()) return true;
+    await sleep(100);
+  }
+  return check();
+}
+
 /** Press/release, then exactly ONE click; a second would re-toggle checkboxes. */
 function scriptedClick(el: HTMLElement): void {
   const win = winOf(el);
@@ -560,6 +586,16 @@ export async function executeAction(action: AgentAction): Promise<string> {
       const report = await clickElement(el);
 
       const label = el.innerText?.trim().substring(0, 40) || el.getAttribute('aria-label') || `element ${action.elementId}`;
+      // A radio must end up selected. If the page didn't take the click, a
+      // scripted one may do (some pages listen for that instead); if not, say so,
+      // so the rest of the batch (often "Submit") doesn't run without an answer
+      const selected = radioState(el);
+      if (selected && !await becomes(selected)) {
+        scriptedClick(el);
+        if (!await becomes(selected)) {
+          return `❌ Clicked "${label}", but it doesn't show as selected: the page didn't take the click. Don't carry on as if it were chosen: click it again, or click its text.`;
+        }
+      }
       if (report.coveredBy) {
         return `⚠️ Clicked "${label}" with a scripted click because ${report.coveredBy} is on top of it. If nothing happened, close or dismiss that first.`;
       }

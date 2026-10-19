@@ -267,6 +267,22 @@ export const TASKS: Task[] = [
     ],
   },
   {
+    // Oracle Academy style: a question per page, answers as <button role="radio">,
+    // and "Submit Answer" ignored without one. Question 2 ignores the first click,
+    // so the click must be checked, or Submit goes nowhere and the run looks stuck
+    id: 'one-question-a-page',
+    category: 'hard',
+    start: '/assessment.html',
+    goal: 'Answer each question of this assessment correctly, clicking Submit Answer after each, until it is complete',
+    check: r => ['1:True', '2:True', '3:Node'].every((want) => hit(r.events, '/api/assessment', d => `${d.q}:${d.answer}` === want)),
+    mockPlan: [
+      [{ action: 'click', target: /role="radio".*"True"/ }, { action: 'click', target: /"Submit Answer"/ }],
+      [{ action: 'click', target: /role="radio".*"True"/ }, { action: 'click', target: /"Submit Answer"/ }],
+      [{ action: 'click', target: /role="radio".*"Node"/ }, { action: 'click', target: /"Submit Answer"/ }],
+      { action: 'done', summary: 'Answered all three questions; the assessment is complete.' },
+    ],
+  },
+  {
     // A university feedback portal: each rating is a <label> around a radio that
     // CSS hides, the question is a plain <span>, and every course repeats the
     // same questions. The draft saves itself; submitting is not wanted.

@@ -1144,12 +1144,18 @@ async function loop(deps: RunnerDeps, run: Run): Promise<void> {
     run.repeats.set(stateKey, seen);
     if (seen >= REPEAT_PAUSE && actions[0]?.action !== 'done') {
       const what = descs.join(', ') || 'a plan with no actions';
-      const reason = `The agent looks stuck: it chose \`${what}\` ${seen} times on this page, and the page didn't change. Continue to let it try something else, or stop.`;
+      const reason = `The agent looks stuck: it chose \`${what}\` ${seen} times on this page, and the page didn't change. Continue to let it try once more, write what it should do instead, or stop.`;
+      const said = run.history.length;
       if (!await pause(deps, run, reason, 'stuck')) break;
-      run.repeats.set(stateKey, REPEAT_WARN); // choosing it once more pauses again
+      // Another three tries before asking again: the user is the judge of when to give up
+      run.repeats.delete(stateKey);
       run.needPlanner = true;
-      addHistory(run, `${what} → ⏸️ not run: you chose this ${seen} times on this unchanged page. Do something different.`);
-      continue;
+      if (run.history.length > said) {
+        // The user wrote what to do: the model reads it before anything runs
+        addHistory(run, `${what} → ⏸️ not run: the user answered (above). Do what they say.`);
+        continue;
+      }
+      // "Keep going": the user saw what it would do, and let it
     }
     const repeatWarning = seen >= REPEAT_WARN
       ? ' ⚠️ You already did exactly this on this same page. If nothing changed, do something different.'
