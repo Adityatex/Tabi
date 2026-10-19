@@ -21,11 +21,14 @@ The name is *tab* plus *tabi* (旅), Japanese for a journey.
 
 Tabi isn't on the Chrome Web Store yet. To run it from source:
 
-1. Install Node.js 20.19 or later (22 recommended), then:
+1. Install [Node.js](https://nodejs.org) 20.19 or later (22 recommended), then get the code and build it:
    ```bash
+   git clone https://github.com/Adityatex/Tabi.git
+   cd Tabi
    npm install
    npm run build
    ```
+   No Git? On GitHub, click **Code › Download ZIP**, unzip it, and run the last two commands in that folder.
 2. Open `chrome://extensions` (or `brave://extensions`, `edge://extensions`) and turn on **Developer mode**.
 3. Click **Load unpacked** and choose the `.output/chrome-mv3` folder.
 4. Click the Tabi icon in the toolbar, or press **Alt+T**, to open the side panel.
