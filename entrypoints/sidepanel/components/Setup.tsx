@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { ArrowUpRight, Check, KeyRound, LoaderCircle, Settings, X } from 'lucide-react';
 import { PROVIDERS, type ProviderId } from '@/lib/api/providers';
+import ChatGPTButton from '@/components/ChatGPTButton';
 import { send } from '../hooks';
 
 const CHOICES: { id: ProviderId; name: string; hint: string; suggested?: boolean }[] = [
@@ -61,9 +62,7 @@ function ChatGPTStart({ onReady }: { onReady: () => void }) {
     <section className="rounded-card border border-border bg-surface p-3 flex flex-col gap-2" data-testid="setup-chatgpt">
       <h2 className="font-semibold">Have a paid ChatGPT plan?</h2>
       <p className="text-[12px] text-muted leading-[1.5]">Use your ChatGPT plan, with no API key. Tabi’s requests count toward your plan’s usage.</p>
-      <button type="button" onClick={start} disabled={state.waiting || !!state.ok} className="self-start h-8 px-4 rounded-full bg-[#0d0d0d] text-white font-medium text-[12.5px] disabled:opacity-60 dark:bg-white dark:text-[#0d0d0d]">
-        Continue with ChatGPT
-      </button>
+      <ChatGPTButton small onClick={start} disabled={state.waiting || !!state.ok} />
       {state.waiting && <div role="status" className="text-[12px] text-muted">Finish signing in in the window that opened.</div>}
       {state.ok && <div role="status" className="flex items-center gap-[5px] text-[12px] text-green"><Check size={13} aria-hidden />{state.ok}</div>}
       {state.error && <div role="alert" className="flex items-start gap-[5px] text-[12px] text-red [overflow-wrap:anywhere]"><X size={13} className="flex-none mt-px" aria-hidden />{state.error}</div>}

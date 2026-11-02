@@ -7,6 +7,7 @@ import { ArrowDown, ArrowUp, Check, CircleCheck, CircleX, Ellipsis, Eye, EyeOff,
 import { PROVIDERS, PROVIDER_IDS, type ProviderId } from '@/lib/api/providers';
 import { USAGE_URL } from '@/lib/api/chatgptAuth';
 import type { ModelInfo } from '@/lib/api/llmClient';
+import ChatGPTButton from '@/components/ChatGPTButton';
 import { Card, Field, Notice, PageHead, Select, TextInput, Toggle, send } from '../ui';
 
 interface Settings {
@@ -103,9 +104,7 @@ function ChatGPTSignIn({ account, onSignedIn, onSignedOut }: {
         <p className="text-[12px] text-muted mt-[2px] max-w-[560px] [text-wrap:pretty]">With a paid ChatGPT plan, Tabi can use your plan instead of an API key. Its requests count toward your plan’s usage, which you can manage in ChatGPT’s settings. On Plus, the 5-hour limit is shared with ChatGPT and your other apps.</p>
       </div>
       <div className="flex items-center gap-3 flex-wrap">
-        <button type="button" onClick={() => start()} disabled={status.state === 'waiting'} className="h-9 px-4 rounded-full bg-[#0d0d0d] text-white font-medium text-[13px] disabled:opacity-60 dark:bg-white dark:text-[#0d0d0d]">
-          Continue with ChatGPT
-        </button>
+        <ChatGPTButton onClick={() => start()} disabled={status.state === 'waiting'} />
         {status.state === 'waiting' && <span className="text-[12px] text-muted" role="status">Finish signing in in the window that opened.</span>}
       </div>
       {status.state === 'error' && <Notice kind="error">{status.message}</Notice>}
