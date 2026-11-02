@@ -1,6 +1,7 @@
-// First run, before any provider is set up: choose one, paste its key, test
-// it. Three steps in the panel; everything else is in Settings.
-import { useState } from 'react';
+// First run, before any provider is set up: continue with ChatGPT (a paid
+// plan, no key), or choose a provider, paste its key and test it.
+// Everything else is in Settings.
+import { useEffect, useState } from 'react';
 import { ArrowUpRight, Check, KeyRound, LoaderCircle, Settings, X } from 'lucide-react';
 import { PROVIDERS, type ProviderId } from '@/lib/api/providers';
 import { send } from '../hooks';
@@ -22,6 +23,52 @@ interface Props {
   onOpenSettings: () => void;
   /** Called once the key works and is saved. */
   onReady: () => void;
+}
+
+/**
+ * Sign in with ChatGPT: the sign-in opens in a window of its own, the
+ * background finishes it, and the plan's first model is saved as the main one.
+ */
+function ChatGPTStart({ onReady }: { onReady: () => void }) {
+  const [state, setState] = useState<{ waiting?: boolean; ok?: string; error?: string }>({});
+
+  useEffect(() => {
+    if (!state.waiting) return;
+    const timer = setInterval(async () => {
+      const res = await send<{ state: string; email?: string; planUsage?: boolean; message?: string }>('CHATGPT_STATUS');
+      const status = res.data;
+      if (!status || status.state === 'waiting') return;
+      clearInterval(timer);
+      if (status.state === 'error') return setState({ error: status.message });
+      if (!status.planUsage) return setState({ error: `${status.email} can sign in, but its plan can’t be used in other apps (OpenAI decides which plans and workspaces allow it). Use an API key below instead.` });
+      const listed = await send<{ models: { id: string }[] }>('LIST_MODELS', { provider: 'chatgpt' });
+      const model = listed.data?.models?.[0]?.id;
+      if (!model) return setState({ error: listed.error ?? 'Your ChatGPT plan offered no models Tabi can use.' });
+      const saved = await send('SAVE_LLM_SETTINGS', { provider: 'chatgpt', model });
+      if (!saved.success) return setState({ error: saved.error ?? 'Couldn’t save it' });
+      setState({ ok: `Signed in as ${status.email} · using ${model}` });
+      setTimeout(onReady, 900);
+    }, 800);
+    return () => clearInterval(timer);
+  }, [state.waiting]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const start = async () => {
+    const res = await send('CHATGPT_SIGN_IN');
+    setState(res.success ? { waiting: true } : { error: res.error ?? 'Couldn’t open the sign-in' });
+  };
+
+  return (
+    <section className="rounded-card border border-border bg-surface p-3 flex flex-col gap-2" data-testid="setup-chatgpt">
+      <h2 className="font-semibold">Have a paid ChatGPT plan?</h2>
+      <p className="text-[12px] text-muted leading-[1.5]">Use your ChatGPT plan, with no API key. Tabi’s requests count toward your plan’s usage.</p>
+      <button type="button" onClick={start} disabled={state.waiting || !!state.ok} className="self-start h-8 px-4 rounded-full bg-[#0d0d0d] text-white font-medium text-[12.5px] disabled:opacity-60 dark:bg-white dark:text-[#0d0d0d]">
+        Continue with ChatGPT
+      </button>
+      {state.waiting && <div role="status" className="text-[12px] text-muted">Finish signing in in the window that opened.</div>}
+      {state.ok && <div role="status" className="flex items-center gap-[5px] text-[12px] text-green"><Check size={13} aria-hidden />{state.ok}</div>}
+      {state.error && <div role="alert" className="flex items-start gap-[5px] text-[12px] text-red [overflow-wrap:anywhere]"><X size={13} className="flex-none mt-px" aria-hidden />{state.error}</div>}
+    </section>
+  );
 }
 
 function Num({ n, done }: { n: number; done: boolean }) {
@@ -58,8 +105,11 @@ export default function Setup({ onOpenSettings, onReady }: Props) {
     <div className="flex-1 min-h-0 overflow-y-auto scroll-thin pt-[18px] px-[14px] pb-[10px] flex flex-col gap-4" data-testid="setup">
       <div>
         <h1 className="text-[18px] font-semibold tracking-[-0.02em]">Set up Tabi</h1>
-        <p className="text-muted mt-1 leading-[1.5]">Tabi runs on your own AI key, stored only on this device. Three steps, about a minute.</p>
+        <p className="text-muted mt-1 leading-[1.5]">Tabi runs on your ChatGPT plan or your own AI key, stored only on this device. About a minute.</p>
       </div>
+
+      <ChatGPTStart onReady={onReady} />
+      <div className="text-[12px] text-muted font-medium">Or use an API key</div>
 
       <section className="flex gap-3">
         <Num n={1} done={!!state.ok} />

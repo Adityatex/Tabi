@@ -1,7 +1,9 @@
 // LLM provider presets and settings. Every provider here speaks the OpenAI
-// chat-completions API, so one client (llmClient.ts) serves them all.
+// chat-completions API, so one client (llmClient.ts) serves them all, except
+// the ChatGPT plan, which is signed in to (chatgptAuth.ts) and answers through
+// the Responses API.
 
-export type ProviderId = 'groq' | 'gemini' | 'mistral' | 'deepseek' | 'openai' | 'openrouter' | 'kilo' | 'opencode' | 'ollama' | 'custom';
+export type ProviderId = 'chatgpt' | 'groq' | 'gemini' | 'mistral' | 'deepseek' | 'openai' | 'openrouter' | 'kilo' | 'opencode' | 'ollama' | 'custom';
 
 export interface ProviderPreset {
   id: ProviderId;
@@ -30,10 +32,20 @@ export interface ProviderPreset {
    * its output-tokens-per-minute limit (1,000 for some models).
    */
   maxOutputTokens?: number;
+  /** Signed in to instead of a key (Sign in with ChatGPT), and called through the Responses API. */
+  signIn?: boolean;
   note?: string;
 }
 
 export const PROVIDERS: Record<ProviderId, ProviderPreset> = {
+  chatgpt: {
+    id: 'chatgpt',
+    label: 'ChatGPT plan',
+    baseUrl: 'https://api.openai.com/v1',
+    needsKey: false,
+    signIn: true,
+    note: 'Sign in with ChatGPT and Tabi’s requests use your ChatGPT plan, with no API key, if OpenAI allows it for your plan. They count toward your plan’s limits; on Plus, the 5-hour limit is shared with ChatGPT and your other apps.',
+  },
   groq: {
     id: 'groq',
     label: 'Groq',
@@ -139,6 +151,8 @@ export interface StoredLLMSettings {
    * model plans and checks. It uses that provider's saved key.
    */
   executor?: { provider: ProviderId; model: string };
+  /** Who is signed in with ChatGPT. The tokens are kept apart (chatgptAuth.ts). */
+  chatgpt?: { email: string; planUsage: boolean };
 }
 
 export const SETTINGS_KEY = 'tabi_llm';
@@ -154,6 +168,8 @@ export interface LLMConfig {
   maxOutputTokens?: number;
   /** Set by the fallback chain: give up at once on rate limits, another provider is waiting. */
   failFast?: boolean;
+  /** A signed-in provider (the ChatGPT plan): who, and whether their plan may be used. */
+  signIn?: { email: string; planUsage: boolean };
 }
 
 /** Stored settings, or Groq with nothing set up. */
@@ -164,7 +180,7 @@ export function readSettings(stored: Record<string, unknown>): StoredLLMSettings
     const executor = saved.executor && PROVIDERS[saved.executor.provider] && saved.executor.model?.trim()
       ? { provider: saved.executor.provider, model: saved.executor.model.trim() }
       : undefined;
-    return { provider: saved.provider, models: saved.models ?? {}, keys: saved.keys ?? {}, customBaseUrl: saved.customBaseUrl, fallbacks, executor };
+    return { provider: saved.provider, models: saved.models ?? {}, keys: saved.keys ?? {}, customBaseUrl: saved.customBaseUrl, fallbacks, executor, ...(saved.chatgpt ? { chatgpt: saved.chatgpt } : {}) };
   }
   return { provider: 'groq', models: {}, keys: {} };
 }
@@ -179,6 +195,7 @@ export function resolveConfig(settings: StoredLLMSettings, provider: ProviderId 
     apiKey: settings.keys[provider] ?? '',
     model: settings.models[provider] || preset.defaultModel || '',
     ...(preset.maxOutputTokens ? { maxOutputTokens: preset.maxOutputTokens } : {}),
+    ...(preset.signIn && settings.chatgpt ? { signIn: settings.chatgpt } : {}),
   };
 }
 
@@ -237,6 +254,10 @@ export function validateBaseUrl(raw: string): string | null {
 /** Why this config can't make requests yet, or null if it's ready. */
 export function configProblem(config: LLMConfig): string | null {
   const preset = PROVIDERS[config.provider];
+  if (preset.signIn && !config.signIn) return `Sign in with ChatGPT in Tabi's Settings to use your ChatGPT plan.`;
+  if (preset.signIn && !config.signIn?.planUsage) {
+    return `${config.signIn?.email} is signed in, but its ChatGPT plan can't be used in other apps (OpenAI decides which plans and workspaces allow it). Choose another provider in Tabi's Settings.`;
+  }
   if (!config.baseUrl) return `Set the server URL for ${config.label} in Tabi's Settings.`;
   const urlError = validateBaseUrl(config.baseUrl);
   if (urlError) return `${config.label} URL: ${urlError}.`;

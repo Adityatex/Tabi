@@ -8,6 +8,7 @@ import TabiMark from '@/components/TabiMark';
 import type { RunView } from '@/lib/agent/runner';
 import { copyCodeOnClick, renderMarkdown } from '@/lib/utils/markdown';
 import { failedProvider, failureKind, formatElapsed, planItems, siteOf } from '@/lib/panel/view';
+import { USAGE_URL } from '@/lib/api/chatgptAuth';
 
 const card = 'bg-surface border border-border rounded-card p-[14px]';
 
@@ -160,13 +161,28 @@ export function FailedCard({ run, provider: main, hasBackup, onSettings, onRetry
     rate_limit: { icon: Gauge, title: `${provider || 'Your provider'} hit its rate limit`, body: hasBackup
       ? `The task stopped at step ${steps + 1}, and your backups couldn’t take over either. Retry in a minute.`
       : `The task stopped at step ${steps + 1}. Add a backup provider and Tabi switches over on its own next time.` },
+    plan_limit: { icon: Gauge, title: 'Usage limit reached', body: `The task stopped at step ${steps + 1}. The limit may be your ChatGPT plan’s or one for apps like Tabi; ChatGPT’s settings show which.${hasBackup ? ' Your backups couldn’t take over either.' : ' Add a backup provider and Tabi switches over on its own next time.'}` },
+    signed_out: { icon: KeyRound, title: 'Sign in with ChatGPT again', body: 'ChatGPT no longer accepts Tabi’s sign-in. Nothing on the page was changed.' },
     model: { icon: Settings, title: 'That model isn’t available', body: 'Your key can’t use the chosen model. Pick another in Settings.' },
     setup: { icon: Settings, title: 'Tabi isn’t set up yet', body: 'Choose a provider, paste your key and pick a model in Settings.' },
     page_load: { icon: WifiOff, title: 'The page didn’t load', body: 'Check the tab, then retry.' },
     other: { icon: TriangleAlert, title: 'The task failed', body: 'Retry, or open the timeline to see what happened.' },
   }[kind];
   const Icon = copy.icon;
-  const fix = kind === 'bad_key' || kind === 'model' || kind === 'setup';
+  const fix = kind === 'bad_key' || kind === 'signed_out' || kind === 'model' || kind === 'setup';
+  if (kind === 'plan_limit') {
+    return (
+      <div className="bg-red-bg border border-red rounded-card p-[14px]" role="alert">
+        <div className="flex items-center gap-2 font-semibold text-[14px] text-red"><Icon size={15} aria-hidden />{copy.title}</div>
+        <div className="mt-[6px] leading-[1.5]">{copy.body}</div>
+        <div className="flex gap-[6px] mt-3 flex-wrap">
+          <a href={USAGE_URL} target="_blank" rel="noreferrer" className="btn btn-primary h-[30px]">Manage usage</a>
+          {!hasBackup && <button type="button" className="btn btn-secondary h-[30px]" onClick={onSettings}><Plus size={12} aria-hidden />Add a backup</button>}
+          <button type="button" className="btn btn-quiet h-[30px]" onClick={onRetry}>Retry</button>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="bg-red-bg border border-red rounded-card p-[14px]" role="alert">
       <div className="flex items-center gap-2 font-semibold text-[14px] text-red"><Icon size={15} aria-hidden />{copy.title}</div>

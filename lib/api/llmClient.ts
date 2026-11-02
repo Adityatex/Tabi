@@ -1,8 +1,11 @@
 // LLM client for any OpenAI-compatible provider (Groq, DeepSeek, OpenAI,
-// OpenRouter, Ollama, custom). Only the background service worker calls it.
+// OpenRouter, Ollama, custom), and for the ChatGPT plan through the Responses
+// API. Only the background service worker calls it.
 
 import { withTimeout, formatError } from '@/lib/utils/errorHandler';
 import { PROVIDERS, type LLMConfig } from '@/lib/api/providers';
+import { accessToken, ChatGPTAuthError, USAGE_URL } from '@/lib/api/chatgptAuth';
+import { readResponses, responsesBody, responsesError } from '@/lib/api/responses';
 import { promptHistory } from '@/lib/agent/history';
 import { MAX_BATCH } from '@/lib/agent/parseAction';
 import { AGENT_TOOLS, NEXT_ACTIONS_TOOL, toolCallsToResponse, type ToolCall, type ToolDef } from '@/lib/agent/tools';
@@ -309,7 +312,139 @@ function isModelNotFound(status: number, body: string): boolean {
   return status === 404 || /model_not_found|model .*(does not exist|not found)|unknown model|invalid model/i.test(body);
 }
 
+/** An access token for the ChatGPT plan (a new one if `rejected` was refused), its failures as LLMErrors. */
+async function chatgptToken(rejected?: string): Promise<string> {
+  try {
+    return await accessToken(undefined, undefined, rejected);
+  } catch (err) {
+    if (err instanceof ChatGPTAuthError) throw new LLMError(err.message, err.kind);
+    throw err;
+  }
+}
+
+/** Plan-usage errors that come inside a stream, with the HTTP status they'd have had. */
+const STREAM_ERROR_STATUS: Record<string, number> = {
+  subscription_sharing_usage_limit_exceeded: 429,
+  subscription_sharing_usage_unavailable: 503,
+  subscription_sharing_user_unavailable: 503,
+  subscription_sharing_invalid_user: 401,
+  subscription_sharing_user_not_eligible: 403,
+};
+
+/**
+ * The ChatGPT plan: the Responses API, with the signed-in account's token
+ * (developers.openai.com/siwc). Only a completed response counts; a usage
+ * limit can arrive mid-stream. Error codes are OpenAI's documented ones.
+ */
+async function callResponses(messages: ChatMessage[], config: LLMConfig, opts: CallOptions): Promise<string> {
+  const fixKey = `${config.baseUrl}|${config.model}`;
+  let fixes: ParamFixes = learnedFixes.get(fixKey) ?? {};
+  const failFast = opts.failFast ?? config.failFast ?? false;
+  let refreshed = false;
+  let bearer = await chatgptToken();
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    let failure: { status: number; code: string; message: string; param?: string };
+    try {
+      const body = responsesBody(config.model, messages, { tools: fixes.noTools ? undefined : opts.tools, toolChoiceAuto: fixes.toolChoiceAuto, noImages: fixes.noImages });
+      const response = await withTimeout(
+        fetch(`${config.baseUrl}/responses`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream', Authorization: `Bearer ${bearer}` },
+          body: JSON.stringify(body),
+          signal: opts.signal,
+        }),
+        REQUEST_TIMEOUT,
+        `${config.label} request`,
+      );
+      if (!response.ok) {
+        failure = { status: response.status, ...responsesError(await response.text().catch(() => '')) };
+      } else {
+        opts.onText?.('');
+        const result = await readResponses(response, opts.onText, (p) => withTimeout(p, REQUEST_TIMEOUT, 'Streamed answer'));
+        if (result.ended === 'completed' || result.ended === 'incomplete') {
+          if (result.usage) opts.onUsage?.(result.usage);
+          if (result.calls.length && opts.toolsToText) return opts.toolsToText(result.calls);
+          if (result.text) return result.text;
+          return result.ended === 'incomplete'
+            ? `(empty response: the answer was cut short${result.reason ? ` (${result.reason})` : ''})`
+            : 'No response received.';
+        }
+        if (result.ended === 'cut') throw new Error('network: the answer stopped part way');
+        failure = { status: STREAM_ERROR_STATUS[result.error?.code ?? ''] ?? 400, code: '', message: '', ...result.error };
+      }
+    } catch (error) {
+      if (error instanceof LLMError || error instanceof ToolsUnsupportedError) throw error;
+      if (opts.signal?.aborted) throw new LLMError('Stopped', 'other');
+      const message = formatError(error);
+      if (!/timed out|network|failed to fetch/i.test(message)) throw error;
+      if (attempt < MAX_RETRIES && !failFast) {
+        await sleep(Math.min(1000 * (2 ** attempt), 12000));
+        continue;
+      }
+      throw new LLMError(`${config.label} is unreachable: ${message}`, 'unavailable');
+    }
+
+    const { status, code, message, param } = failure;
+    const detail = `${message}${param ? ` (${param})` : ''}`;
+    if (code === 'subscription_sharing_usage_limit_exceeded') {
+      // Not necessarily the plan running out: an app limit may apply too, so no reset time is guessed
+      throw new LLMError(`Usage limit reached on your ChatGPT plan. See your limits at ${USAGE_URL}`, 'daily');
+    }
+    if (code === 'subscription_sharing_user_not_eligible') {
+      throw new LLMError('Your ChatGPT plan can’t be used in other apps (OpenAI decides which plans and workspaces allow it). Choose another provider in Tabi’s Settings.', 'auth');
+    }
+    if (code === 'subscription_sharing_unsupported_capability') {
+      const what = `${param ?? ''} ${message}`;
+      if (/image/i.test(what) && hasImages(messages) && !fixes.noImages) {
+        fixes = { ...fixes, noImages: true };
+        learnedFixes.set(fixKey, fixes);
+        attempt--;
+        continue;
+      }
+      if (/tool_choice/i.test(what) && opts.tools && !fixes.toolChoiceAuto) {
+        fixes = { ...fixes, toolChoiceAuto: true };
+        learnedFixes.set(fixKey, fixes);
+        attempt--;
+        continue;
+      }
+      if (/tool/i.test(what) && opts.tools && !fixes.noTools) {
+        learnedFixes.set(fixKey, { ...fixes, noTools: true });
+        throw new ToolsUnsupportedError(`${config.label} · ${config.model} doesn't take tools: ${detail}`);
+      }
+      if (/model/i.test(param ?? '')) {
+        throw new LLMError(`Your ChatGPT plan doesn't offer the model "${config.model}". Pick another with "Load models" in Tabi's Settings.`, 'model');
+      }
+      throw new LLMError(`Your ChatGPT plan can't do part of this request: ${detail}`, 'other');
+    }
+    if (status === 401) {
+      // The access token may just have been replaced: get a fresh one, once
+      if (!refreshed) {
+        refreshed = true;
+        bearer = await chatgptToken(bearer);
+        attempt--;
+        continue;
+      }
+      throw new LLMError(`ChatGPT didn't accept Tabi's sign-in (401): ${detail}. Sign in with ChatGPT again in Tabi's Settings.`, 'auth');
+    }
+    if (status === 403) throw new LLMError(`ChatGPT refused the request (403${code ? ` ${code}` : ''}): ${detail}`, 'auth');
+    if (isModelNotFound(status, message)) {
+      throw new LLMError(`Your ChatGPT plan doesn't offer the model "${config.model}". Pick another with "Load models" in Tabi's Settings.`, 'model');
+    }
+    if (status === 429 || status >= 500) {
+      if (failFast || attempt >= MAX_RETRIES) {
+        throw new LLMError(status === 429 ? `Rate limit exceeded on ${config.label}: ${detail}` : `${config.label} is unavailable (${status}): ${detail}`, status === 429 ? 'rate-limit' : 'unavailable');
+      }
+      await sleep(Math.min(1000 * (2 ** attempt), 12000));
+      continue;
+    }
+    throw new LLMError(`${config.label} API error ${status}: ${detail}`, 'other');
+  }
+  throw new LLMError(`${config.label} request failed after retries.`, 'unavailable');
+}
+
 export async function callLLM(messages: ChatMessage[], config: LLMConfig, opts: CallOptions = {}): Promise<string> {
+  if (PROVIDERS[config.provider]?.signIn) return callResponses(messages, config, opts);
   const url = `${config.baseUrl}/chat/completions`;
   const fixKey = `${config.baseUrl}|${config.model}`;
   let fixes: ParamFixes = learnedFixes.get(fixKey) ?? {};
@@ -438,14 +573,18 @@ export interface ModelInfo {
  * API other than chat completions).
  */
 export async function listModels(config: LLMConfig): Promise<ModelInfo[]> {
+  const signedIn = !!PROVIDERS[config.provider]?.signIn;
+  const headers = signedIn ? { Authorization: `Bearer ${await chatgptToken()}` } : authHeaders(config);
   const response = await withTimeout(
-    fetch(`${config.baseUrl}/models`, { headers: authHeaders(config) }),
+    fetch(`${config.baseUrl}/models`, { headers }),
     MODELS_TIMEOUT,
     `${config.label} model list`,
   );
   const body = await response.text().catch(() => '');
   if (response.status === 401 || response.status === 403) {
-    throw new Error(`${config.label} rejected the API key (${response.status}): ${errorMessage(body)}`);
+    throw new Error(signedIn
+      ? `ChatGPT didn't accept Tabi's sign-in (${response.status}): ${errorMessage(body)}. Sign in again.`
+      : `${config.label} rejected the API key (${response.status}): ${errorMessage(body)}`);
   }
   if (!response.ok) throw new Error(`${config.label} could not list models (${response.status}): ${errorMessage(body)}`);
 
@@ -459,7 +598,9 @@ export async function listModels(config: LLMConfig): Promise<ModelInfo[]> {
   const preset = PROVIDERS[config.provider];
   const models = new Map<string, ModelInfo>();
   for (const m of items) {
-    const rawId = typeof m === 'string' ? m : m?.id ?? m?.name;
+    // The ChatGPT plan lists models by slug, and only those marked visibility "list" are for pickers
+    if (signedIn && m?.visibility && m.visibility !== 'list') continue;
+    const rawId = typeof m === 'string' ? m : signedIn ? m?.slug ?? m?.id : m?.id ?? m?.name;
     if (typeof rawId !== 'string' || !rawId) continue;
     const id = rawId.replace(/^models\//, ''); // Gemini lists "models/<id>" but takes "<id>"
     if (m?.capabilities?.completion_chat === false) continue; // Mistral: embedding/OCR/moderation models

@@ -76,11 +76,14 @@ export function formatElapsed(ms: number): string {
   return h ? `${h}:${String(m).padStart(2, '0')}:${s}` : `${m}:${s}`;
 }
 
-export type FailureKind = 'bad_key' | 'rate_limit' | 'model' | 'setup' | 'page_load' | 'other';
+export type FailureKind = 'bad_key' | 'rate_limit' | 'plan_limit' | 'signed_out' | 'model' | 'setup' | 'page_load' | 'other';
 
 /** What went wrong, from a failed run's error, to pick the card and its fix. */
 export function failureKind(error: string | undefined): FailureKind {
   const e = error ?? '';
+  // The ChatGPT plan: its usage limit, or a sign-in ChatGPT no longer accepts
+  if (/Usage limit reached on your ChatGPT plan/i.test(e)) return 'plan_limit';
+  if (/Sign in with ChatGPT (again )?in Tabi/i.test(e)) return 'signed_out';
   if (/rejected the API key|invalid[_ ]api[_ ]key|\b401\b|\b403\b/i.test(e)) return 'bad_key';
   if (/rate limit|daily limit|\b429\b|quota/i.test(e)) return 'rate_limit';
   if (/doesn't offer the model|model_not_found/i.test(e)) return 'model';

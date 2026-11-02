@@ -3,7 +3,7 @@
 [![CI](https://github.com/Adityatex/Tabi/actions/workflows/ci.yml/badge.svg)](https://github.com/Adityatex/Tabi/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Tabi is an open-source browser agent for Chrome, Edge, Brave and other Chromium browsers. It reads the page you're on, answers questions about it, and does tasks for you: filling forms, working through multi-page flows, collecting data across pages. It runs in the browser's side panel and uses an AI provider of your choice, with your own API key. Nothing goes through a Tabi server; there isn't one.
+Tabi is an open-source browser agent for Chrome, Edge, Brave and other Chromium browsers. It reads the page you're on, answers questions about it, and does tasks for you: filling forms, working through multi-page flows, collecting data across pages. It runs in the browser's side panel and uses an AI provider of your choice, with your own API key, or your ChatGPT plan. Nothing goes through a Tabi server; there isn't one.
 
 The name is *tab* plus *tabi* (旅), Japanese for a journey.
 
@@ -39,10 +39,13 @@ To update, pull, run `npm run build` again and click **Reload** on Tabi's card.
 
 ## Choose a provider
 
-The first time you open Tabi, it asks for a provider and an API key. You can change both, and add more, under **Settings › Models & keys**. Once you have more than one, the model menu at the top of the panel switches between them.
+The first time you open Tabi, it offers **Continue with ChatGPT**, or a provider and an API key. You can change both, and add more, under **Settings › Models & keys**. Once you have more than one, the model menu at the top of the panel switches between them.
+
+**Your ChatGPT plan.** With a paid ChatGPT plan, click **Continue with ChatGPT** and sign in on OpenAI's page. Tabi's requests then use your plan, with no API key, and count toward its usage (on Plus, the 5-hour limit is shared with ChatGPT and your other apps; see it under **Manage usage**). This uses OpenAI's [Sign in with ChatGPT](https://developers.openai.com/siwc) for open-source apps, which is in preview. OpenAI decides which plans can be used in other apps; if yours can't, you can still sign in, and Settings says so.
 
 | Provider | Get a key | Notes |
 |---|---|---|
+| ChatGPT plan | none: sign in | A paid plan OpenAI allows. Uses OpenAI's Responses API |
 | Groq | [console.groq.com](https://console.groq.com/keys) | Free tier. Benchmarked default: `qwen/qwen3.8-27b` |
 | Google AI Studio (Gemini) | [aistudio.google.com](https://aistudio.google.com/apikey) | Free key, no billing. Flash-Lite models allow the most requests per day on the free tier. Free-tier prompts may be used by Google |
 | Mistral | [console.mistral.ai](https://console.mistral.ai/api-keys) | Free Experiment plan, about one request per second; its prompts may be used for training |

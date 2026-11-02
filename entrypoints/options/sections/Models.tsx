@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowDown, ArrowUp, Check, CircleCheck, CircleX, Ellipsis, Eye, EyeOff, GripVertical, KeyRound, Link, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { PROVIDERS, PROVIDER_IDS, type ProviderId } from '@/lib/api/providers';
+import { USAGE_URL } from '@/lib/api/chatgptAuth';
 import type { ModelInfo } from '@/lib/api/llmClient';
 import { Card, Field, Notice, PageHead, Select, TextInput, Toggle, send } from '../ui';
 
@@ -16,14 +17,109 @@ interface Settings {
   fallbacks: ProviderId[];
   ready: ProviderId[];
   executor: { provider: ProviderId; model: string } | null;
+  /** Who is signed in with ChatGPT. */
+  chatgpt: { email: string; planUsage: boolean } | null;
 }
 
 const free = (id: ProviderId) => /free/i.test(PROVIDERS[id].note ?? '') || id === 'ollama';
 
+type SignIn = { state: 'idle' } | { state: 'waiting' } | { state: 'done'; email: string; planUsage: boolean } | { state: 'error'; message: string };
+
+/**
+ * Sign in with ChatGPT, in place of an API key: "Continue with ChatGPT" opens
+ * OpenAI's sign-in in a window; this waits for the background to finish it.
+ * Wording follows OpenAI's guidelines (developers.openai.com/siwc/ui-ux-guidelines).
+ */
+function ChatGPTSignIn({ account, onSignedIn, onSignedOut }: {
+  account: Settings['chatgpt']; onSignedIn: () => void; onSignedOut: () => void;
+}) {
+  const [status, setStatus] = useState<SignIn>({ state: 'idle' });
+  const [welcome, setWelcome] = useState(false);
+  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
+
+  // While the sign-in window is open, see how it's going
+  useEffect(() => {
+    if (status.state !== 'waiting') return;
+    const timer = setInterval(async () => {
+      const res = await send<SignIn>('CHATGPT_STATUS');
+      if (!res.success || !res.data || res.data.state === 'waiting') return;
+      setStatus(res.data);
+      if (res.data.state === 'done') {
+        setWelcome(true);
+        onSignedIn();
+      }
+    }, 800);
+    return () => clearInterval(timer);
+  }, [status.state]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const start = async (fresh = false) => {
+    setNote(null);
+    const res = await send('CHATGPT_SIGN_IN', { fresh });
+    setStatus(res.success ? { state: 'waiting' } : { state: 'error', message: res.error ?? 'Couldn’t open the sign-in' });
+  };
+  const leave = async () => {
+    const res = await send<{ revoked: boolean }>('CHATGPT_SIGN_OUT');
+    setStatus({ state: 'idle' });
+    setWelcome(false);
+    setNote(res.data?.revoked === false
+      ? { ok: false, text: 'Signed out here, but ChatGPT couldn’t be told. To be sure, disconnect Tabi in ChatGPT’s settings.' }
+      : { ok: true, text: 'Signed out of ChatGPT.' });
+    onSignedOut();
+  };
+
+  if (account) {
+    return (
+      <div className="sm:col-span-2 flex flex-col gap-3" data-testid="chatgpt-account">
+        {welcome && account.planUsage && (
+          <div role="dialog" aria-label="You're using your ChatGPT plan" className="rounded-card border border-border bg-raised p-4 flex flex-col gap-2">
+            <div className="font-semibold text-[14px]">You’re using your ChatGPT plan</div>
+            <p className="text-[12.5px] text-muted [text-wrap:pretty]">Tabi’s requests now count toward your ChatGPT plan’s usage, not an API key. You can see and manage that usage in ChatGPT’s settings.</p>
+            <div className="flex gap-2">
+              <button type="button" className="btn btn-primary h-8" onClick={() => setWelcome(false)}>Got it</button>
+              <a href={USAGE_URL} target="_blank" rel="noreferrer" className="btn btn-quiet h-8">Manage usage</a>
+            </div>
+          </div>
+        )}
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="flex-1 min-w-[220px] flex flex-col">
+            <span className="text-[13px]">Signed in as <span className="font-medium">{account.email}</span></span>
+            <span className={`text-[12px] ${account.planUsage ? 'text-green' : 'text-amber'}`}>{account.planUsage ? 'Using ChatGPT plan' : 'Plan usage isn’t available for this account'}</span>
+            {account.planUsage && <span className="text-[12px] text-muted mt-[2px]">On Plus, the 5-hour limit is shared with ChatGPT and your other apps.</span>}
+          </span>
+          <a href={USAGE_URL} target="_blank" rel="noreferrer" className="btn btn-secondary h-[34px]">Manage usage</a>
+          <button type="button" className="btn btn-quiet h-[34px]" onClick={leave}>Sign out</button>
+        </div>
+        {!account.planUsage && (
+          <Notice kind="warn">This account can sign in, but its plan can’t be used in other apps. OpenAI decides which plans and workspaces allow it. Choose another provider, or sign in with another account.</Notice>
+        )}
+        {!account.planUsage && <button type="button" className="text-[12px] font-medium text-accent self-start" onClick={() => start(true)}>Use another account</button>}
+      </div>
+    );
+  }
+  return (
+    <div className="sm:col-span-2 flex flex-col gap-[10px]" data-testid="chatgpt-sign-in">
+      <div>
+        <div className="font-semibold text-[13.5px]">Use your ChatGPT plan</div>
+        <p className="text-[12px] text-muted mt-[2px] max-w-[560px] [text-wrap:pretty]">With a paid ChatGPT plan, Tabi can use your plan instead of an API key. Its requests count toward your plan’s usage, which you can manage in ChatGPT’s settings. On Plus, the 5-hour limit is shared with ChatGPT and your other apps.</p>
+      </div>
+      <div className="flex items-center gap-3 flex-wrap">
+        <button type="button" onClick={() => start()} disabled={status.state === 'waiting'} className="h-9 px-4 rounded-full bg-[#0d0d0d] text-white font-medium text-[13px] disabled:opacity-60 dark:bg-white dark:text-[#0d0d0d]">
+          Continue with ChatGPT
+        </button>
+        {status.state === 'waiting' && <span className="text-[12px] text-muted" role="status">Finish signing in in the window that opened.</span>}
+      </div>
+      {status.state === 'error' && <Notice kind="error">{status.message}</Notice>}
+      {note && <Notice kind={note.ok ? 'ok' : 'error'}>{note.text}</Notice>}
+    </div>
+  );
+}
+
 /** Edit one provider: as the main one, or as a backup. */
-function ProviderEditor({ settings, initial, mode, exclude = [], onSaved, onCancel, onTested }: {
+function ProviderEditor({ settings, initial, mode, exclude = [], onSaved, onCancel, onTested, onAccount }: {
   settings: Settings; initial: ProviderId; mode: 'main' | 'backup'; exclude?: ProviderId[];
   onSaved: () => void; onCancel?: () => void; onTested?: (ok: boolean) => void;
+  /** Signed in or out with ChatGPT: load the settings again. */
+  onAccount: () => void;
 }) {
   const [provider, setProvider] = useState<ProviderId>(initial);
   const savedModel = settings.models[provider] || PROVIDERS[provider].defaultModel || '';
@@ -72,11 +168,19 @@ function ProviderEditor({ settings, initial, mode, exclude = [], onSaved, onCanc
     const list = res.data?.models ?? [];
     setModels(list);
     const freeCount = list.filter((m) => m.free).length;
+    // Signed in: start with the first model the plan offers
+    if (preset.signIn) {
+      if (!model.trim() && list[0]) setModel(list[0].id);
+      setResult({ ok: true, text: `Signed in · ${list.length} models on your plan` });
+      onTested?.(true);
+      return;
+    }
     setResult({ ok: true, text: `Key works · answered in ${((Date.now() - started) / 1000).toFixed(1)}s · ${list.length} models${freeCount ? `, ${freeCount} free` : ''}` });
     onTested?.(true);
   };
 
   const save = async () => {
+    if (preset.signIn && !settings.chatgpt) return setResult({ ok: false, text: 'Continue with ChatGPT first.' });
     if (needsKey && preset.needsKey && !key.trim() && !masked) return setResult({ ok: false, text: `Paste your ${preset.label} API key first.` });
     if (!model.trim()) return setResult({ ok: false, text: 'Choose a model. The reload button lists what your key can use.' });
     setBusy('Saving');
@@ -113,6 +217,9 @@ function ProviderEditor({ settings, initial, mode, exclude = [], onSaved, onCanc
           <TextInput icon={Link} mono value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://host/v1" />
         </Field>
       )}
+      {preset.signIn && (
+        <ChatGPTSignIn account={settings.chatgpt} onSignedIn={() => { onAccount(); test(); }} onSignedOut={onAccount} />
+      )}
       {needsKey && (
         <div className="sm:col-span-2 flex flex-col gap-[6px]">
           <span className="text-[12px] font-medium">API key{preset.needsKey ? '' : ' (optional)'}</span>
@@ -148,7 +255,7 @@ function ProviderEditor({ settings, initial, mode, exclude = [], onSaved, onCanc
           {preset.keyUrl && !masked && <a href={preset.keyUrl} target="_blank" rel="noreferrer" className="text-[12px] font-medium text-accent self-start">Get a key at {new URL(preset.keyUrl).host}</a>}
         </div>
       )}
-      {preset.note && <p className="sm:col-span-2 text-[12px] text-muted max-w-[640px]">{preset.note}</p>}
+      {preset.note && !preset.signIn && <p className="sm:col-span-2 text-[12px] text-muted max-w-[640px]">{preset.note}</p>}
       {result && <div className="sm:col-span-2"><Notice kind={result.ok ? 'ok' : 'error'}>{result.text}</Notice></div>}
       {(dirty || onCancel) && (
         <div className="sm:col-span-2 flex gap-[6px]">
@@ -186,7 +293,7 @@ function BackupRow({ id, index, count, settings, onMove, onRemove, dragging, onD
       </div>
       {ready
         ? <span className="flex items-center gap-1 text-[12px] text-green"><CircleCheck size={13} aria-hidden />Ready</span>
-        : <span className="flex items-center gap-1 text-[12px] text-red"><CircleX size={13} aria-hidden />No key or model</span>}
+        : <span className="flex items-center gap-1 text-[12px] text-red"><CircleX size={13} aria-hidden />{PROVIDERS[id].signIn && !settings.chatgpt ? 'Not signed in' : 'No key or model'}</span>}
       <button type="button" aria-label={`More for ${PROVIDERS[id].label}`} aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu((m) => !m)} className="p-1 rounded-ctl text-muted hover:text-text">
         <Ellipsis size={15} aria-hidden />
       </button>
@@ -254,10 +361,10 @@ export default function Models() {
 
   return (
     <>
-      <PageHead title="Models & keys">Tabi uses your own API keys. They’re stored only in this browser and sent only to the provider you pick.</PageHead>
+      <PageHead title="Models & keys">Tabi uses your own API keys, or your ChatGPT plan. Keys and sign-ins are stored only in this browser and sent only to the provider you pick.</PageHead>
 
       <Card title="Main provider" note="Plans the task and decides each step." right={pill}>
-        <ProviderEditor settings={settings} initial={main} mode="main" exclude={[]} onSaved={load} onTested={setTested} />
+        <ProviderEditor settings={settings} initial={main} mode="main" exclude={[]} onSaved={load} onTested={setTested} onAccount={load} />
       </Card>
 
       <Card title="Backup providers" note="If your main provider hits a rate limit, the next one takes over mid-task, with the same plan and progress. Drag to change the order." bare testId="backups">
@@ -283,7 +390,7 @@ export default function Models() {
           )}
           {adding ? (
             <div className="px-2 py-3 border-t border-border first:border-t-0">
-              <ProviderEditor settings={settings} initial={unused[0] ?? 'gemini'} mode="backup" exclude={[main, ...order]} onSaved={() => { setAdding(false); load(); }} onCancel={() => setAdding(false)} />
+              <ProviderEditor settings={settings} initial={unused[0] ?? 'gemini'} mode="backup" exclude={[main, ...order]} onSaved={() => { setAdding(false); load(); }} onCancel={() => setAdding(false)} onAccount={load} />
             </div>
           ) : unused.length > 0 && (
             <button type="button" onClick={() => setAdding(true)} className="flex items-center gap-[6px] px-2 pt-[10px] pb-[6px] text-accent font-medium">

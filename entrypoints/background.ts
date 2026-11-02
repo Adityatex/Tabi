@@ -35,6 +35,13 @@ import { createHandlers } from '@/lib/mcp/handlers';
 import { cueOf } from '@/lib/dom/pageCue';
 import { Attention, toolbarIconPaths, type Scheme } from '@/lib/utils/toolbarIcon';
 import { DEFAULT_PORT, isValidToken, normalizeToken } from '@/mcp/src/protocol';
+import {
+  AUTH_KEY, PENDING_KEY, SIGN_IN_TIMEOUT_MS, completeSignIn, isCallback, localAuthStore, readAuth, signOut, startSignIn,
+  type PendingSignIn, type SignInStatus,
+} from '@/lib/api/chatgptAuth';
+
+/** How the ChatGPT sign-in went, for Settings (chrome.storage.session; never any token). */
+const SIGN_IN_STATUS_KEY = 'tabi_chatgpt_status';
 
 /** chrome.storage.local, in the shape lib/skills/store expects. */
 const skillStorage: KeyValueStorage = {
@@ -514,8 +521,52 @@ export default defineBackground(() => {
 
   // Provider settings (BYOK: keys are never hardcoded, and only this worker reads them)
   async function loadSettings(): Promise<StoredLLMSettings> {
-    return readSettings(await browser.storage.local.get(SETTINGS_KEY));
+    const stored = await browser.storage.local.get([SETTINGS_KEY, AUTH_KEY]);
+    const settings = readSettings(stored);
+    // Who is signed in with ChatGPT comes from the sign-in itself, so the two can't disagree
+    const account = readAuth(stored).account;
+    settings.chatgpt = account ? { email: account.email, planUsage: account.planUsage } : undefined;
+    return settings;
   }
+
+  // ---- Sign in with ChatGPT (lib/api/chatgptAuth.ts). The sign-in opens in a
+  // window of its own; OpenAI sends it back to http://127.0.0.1, where nothing
+  // listens, and Tabi reads the code from the window's address. What the
+  // callback is checked against waits in session storage, so a sign-in that
+  // takes minutes survives the worker stopping in between.
+  const setSignInStatus = (status: SignInStatus) => chrome.storage.session.set({ [SIGN_IN_STATUS_KEY]: status });
+
+  async function finishSignIn(url: string, windowId: number): Promise<void> {
+    const pending = (await chrome.storage.session.get(PENDING_KEY))[PENDING_KEY] as PendingSignIn | undefined;
+    if (!pending || pending.answered || pending.windowId !== windowId || !isCallback(url, pending)) return;
+    // The callback counts once. The sign-in stays pending while the code is
+    // exchanged (that takes OpenAI a few seconds), so Settings keeps waiting
+    // instead of finding it gone.
+    await chrome.storage.session.set({ [PENDING_KEY]: { ...pending, answered: true } });
+    chrome.windows.remove(windowId).catch(() => {});
+    let status: SignInStatus;
+    try {
+      const next = await completeSignIn(await localAuthStore.get(), pending, url);
+      await localAuthStore.set(next);
+      status = { state: 'done', email: next.account!.email, planUsage: next.account!.planUsage };
+    } catch (err) {
+      status = { state: 'error', message: (err as Error).message || 'The sign-in didn’t work. Try again.' };
+    }
+    // The outcome first, then the pending sign-in, so no check sees neither
+    await setSignInStatus(status);
+    await chrome.storage.session.remove(PENDING_KEY);
+  }
+
+  chrome.tabs.onUpdated.addListener((_tabId: number, info: { url?: string }, tab: { windowId: number }) => {
+    if (info.url?.startsWith('http://127.0.0.1:')) finishSignIn(info.url, tab.windowId);
+  });
+  chrome.windows.onRemoved.addListener(async (windowId: number) => {
+    const pending = (await chrome.storage.session.get(PENDING_KEY))[PENDING_KEY] as PendingSignIn | undefined;
+    // Tabi closes the window itself once the answer is in
+    if (pending?.windowId !== windowId || pending.answered) return;
+    await chrome.storage.session.remove(PENDING_KEY);
+    await setSignInStatus({ state: 'error', message: 'You closed the sign-in window, so nothing changed.' });
+  });
 
   /** Config for the active provider, or throws a message saying what's missing. */
   async function requireConfig(): Promise<LLMConfig> {
@@ -631,9 +682,45 @@ export default defineBackground(() => {
               success: true,
               data: {
                 provider: settings.provider, models: settings.models, customBaseUrl: settings.customBaseUrl ?? '', maskedKeys,
-                fallbacks: settings.fallbacks ?? [], ready, executor: settings.executor ?? null,
+                fallbacks: settings.fallbacks ?? [], ready, executor: settings.executor ?? null, chatgpt: settings.chatgpt ?? null,
               },
             });
+            break;
+          }
+
+          case 'CHATGPT_SIGN_IN': {
+            // fresh: register another account rather than signing the last one in again
+            const auth = await localAuthStore.get();
+            await localAuthStore.set(auth); // keeps this browser's host ID from the first sign-in on
+            const { url, pending } = await startSignIn(auth, { fresh: !!payload?.fresh });
+            const old = (await chrome.storage.session.get(PENDING_KEY))[PENDING_KEY] as PendingSignIn | undefined;
+            await chrome.storage.session.set({ [PENDING_KEY]: pending, [SIGN_IN_STATUS_KEY]: { state: 'waiting' } });
+            if (old?.windowId !== undefined) chrome.windows.remove(old.windowId).catch(() => {});
+            // The window first, then the sign-in page: an account already signed in may come straight back
+            const win = await chrome.windows.create({ url: 'about:blank', type: 'popup', width: 520, height: 720, focused: true });
+            await chrome.storage.session.set({ [PENDING_KEY]: { ...pending, windowId: win.id } });
+            await chrome.tabs.update(win.tabs[0].id, { url });
+            sendResponse({ success: true });
+            break;
+          }
+
+          case 'CHATGPT_STATUS': {
+            const got = await chrome.storage.session.get([SIGN_IN_STATUS_KEY, PENDING_KEY]);
+            let status: SignInStatus = got[SIGN_IN_STATUS_KEY] ?? { state: 'idle' };
+            const pending = got[PENDING_KEY] as PendingSignIn | undefined;
+            if (status.state === 'waiting' && (!pending || Date.now() - pending.started > SIGN_IN_TIMEOUT_MS)) {
+              status = { state: 'error', message: pending ? 'The sign-in took too long. Try again.' : 'The sign-in stopped before it finished. Try again.' };
+              await chrome.storage.session.remove(PENDING_KEY);
+              await setSignInStatus(status);
+            }
+            sendResponse({ success: true, data: status });
+            break;
+          }
+
+          case 'CHATGPT_SIGN_OUT': {
+            const revoked = await signOut();
+            await chrome.storage.session.remove([SIGN_IN_STATUS_KEY, PENDING_KEY]);
+            sendResponse({ success: true, data: { revoked } });
             break;
           }
 
@@ -719,6 +806,7 @@ export default defineBackground(() => {
             const urlError = config.baseUrl ? validateBaseUrl(config.baseUrl) : 'Enter the server URL first';
             if (urlError) throw new Error(urlError);
             if (PROVIDERS[provider].needsKey && !config.apiKey) throw new Error(`Enter your ${config.label} API key first`);
+            if (PROVIDERS[provider].signIn && !config.signIn) throw new Error('Continue with ChatGPT first');
             sendResponse({ success: true, data: { models: await listModels(config) } });
             break;
           }

@@ -12,7 +12,7 @@ npm run eval             # the benchmark with a real model (Groq by default; --p
 npm run eval:<feature>   # one feature, end to end, in real Chromium with the built extension
 ```
 
-**Unit tests** (`tests/`, 424 tests) cover the logic with no browser: the agent loop, page snapshots, actions, safety checks, providers and failover, workflows (recording, matching elements again, replay, repair), shortcuts (blanks), skills (parsing, picking), schedules (times, missed runs), the autofill profile, History, Markdown.
+**Unit tests** (`tests/`, 447 tests) cover the logic with no browser: the agent loop, page snapshots, actions, safety checks, providers and failover, workflows (recording, matching elements again, replay, repair), shortcuts (blanks), skills (parsing, picking), schedules (times, missed runs), the autofill profile, History, Markdown, and Sign in with ChatGPT (the sign-in, ID token checks with a real signature, refreshes, the Responses API and its errors).
 
 **The benchmark** (`eval/`, 38 tasks) loads the built extension into Chromium, gives the agent tasks on local test pages through the real side panel, and grades each by the requests that reached the test server. CI runs it with a scripted model, plus these modes:
 
@@ -29,6 +29,7 @@ npm run eval:<feature>   # one feature, end to end, in real Chromium with the bu
 |---|---|
 | `eval:routines` | Workflows: save, replay from the home screen with no model calls, repair on a changed page, "Update workflow". Shortcuts: blanks filled from `/name words`, `/name` alone waits in the box, two blanks, Save as shortcut, rename and delete with a schedule attached. Skills: one saved for a site is used there, kept off other sites, used anywhere when chosen by `/name` |
 | `eval:schedule` | A real Chrome alarm replays a workflow in a background tab, records the result, notifies, closes the tab; a run missed while the browser was closed runs once after a real restart; deleting the workflow removes its schedules |
+| `eval:chatgpt` | Sign in with ChatGPT against a fake OpenAI: Continue with ChatGPT on the first-run screen, the code read from the 127.0.0.1 callback, PKCE checked, a task on the plan, an expired token refreshed once, Settings and its usage link, no token on any page, sign-out revokes, signing in again, a sign-in that outlives the background stopping, closing the window cancels |
 | `eval:providers` | The main provider hits a rate limit mid-task and the backup carries on with the steps so far; the next task skips the resting provider; when every provider fails, the message names the right one |
 | `eval:skills` | Skills in the `/` menu: listed, picked, in the first prompt, in background tabs; an unknown `/name` |
 | `eval:settings` | Settings: keys saved and shown masked, backups, safety switches, schedules form, shortcuts (Alt+T, Alt+J), the autofill profile editor; the panel's model menu and home screen |
@@ -52,6 +53,7 @@ What each area has, and what still needs a person.
 | Skills | `/` menu, site rules, save from a task | Whether instructions actually change what the agent does |
 | Schedules | Alarm, missed run after restart, delete with its routine | Waiting for a real time; notification clicks; Pause/Resume; a shortcut on a schedule |
 | Backup providers | Rate limit mid-task, resting provider, all fail | Two real keys |
+| ChatGPT plan | `eval:chatgpt` with a fake OpenAI; unit tests for every documented error | A real paid account: sign-in, a task, the usage limit |
 | Autofill | Two benchmark tasks (live 3/3), the profile editor | Real forms, your own details |
 | Safety | Ask before, site lists, hijack checks (3 tasks) | Real checkout pages |
 | Selection toolbar | 27 checks | How it feels on real sites |
@@ -64,11 +66,11 @@ What each area has, and what still needs a person.
 - When every provider failed, the card blamed the main provider ("Groq rejected your API key") even when it was only rate-limited and the backup's key was the one refused. It now names the provider the error is about, and doesn't suggest "Add a backup" to someone who has one.
 
 **Found by hand since:**
-- On an Oracle Academy assessment, the page sometimes ignored the click on an answer, so "Submit Answer" did nothing and the run looked stuck. Then the stuck pause refused to run the same steps again, even after **Try again** or a typed hint, so the run could never get past the question. A click on a radio is now checked: if the answer doesn't show as selected, Tabi clicks it once more, and if that fails too, it stops before Submit and tells the model. **Try again** now runs the steps, and a typed hint goes to the model first. Benchmark task `one-question-a-page`.
+- On an Oracle Academy assessment, the page sometimes ignored the click on an answer, so "Submit Answer" did nothing and the run looked stuck. Then the stuck pause refused to run the same steps again, even after **Try again** or a typed hint, so the run could never get past the question. A click on a radio is now checked: if the answer doesn't show as selected, Tabi clicks it once more, and if that fails too, it stops before Submit and tells the model. **Try again** now runs the steps, and a typed hint goes to the model first. Benchmark task `one-question-a-page`. The first real **Continue with ChatGPT** said "The sign-in took too long" within seconds: Tabi dropped the pending sign-in as soon as OpenAI answered, and Settings, checking in while the code was being exchanged, took that for a lost sign-in. The test fake answered instantly, so it never showed. The sign-in now stays pending until the exchange ends, and `eval:chatgpt` makes its fake take 3 seconds. The first real task then failed with "Unexpected token 'e', "event: res"... is not valid JSON": OpenAI streamed the answer, but its content-type wasn't text/event-stream, so Tabi read the stream as one JSON object. Tabi now tells a stream from its first character, and the fake labels its stream as JSON.
 
 ## Manual checklist
 
-About an hour in all; each section stands on its own. Tick a box when what you see matches **Expect**. If it doesn't, note the section and step, and what you saw.
+About an hour in all (section 13 needs a paid ChatGPT plan); each section stands on its own. Tick a box when what you see matches **Expect**. If it doesn't, note the section and step, and what you saw.
 
 The sites below are made for testing: [books.toscrape.com](https://books.toscrape.com) (a fake bookshop), [httpbin.org/forms/post](https://httpbin.org/forms/post) (a pizza order form that goes nowhere) and Wikipedia.
 
@@ -204,6 +206,21 @@ The sites below are made for testing: [books.toscrape.com](https://books.toscrap
 
 1. Settings › Appearance: switch Light and Dark, and drag the side panel narrow.
    - [ ] **Expect:** everything is readable in both; nothing is cut off or spills sideways, including the model menu.
+
+### 13. Your ChatGPT plan (needs a paid ChatGPT plan)
+
+If your plan can't be used in other apps, step 1 still tests the sign-in: Settings then says "Plan usage isn't available for this account". Note that and skip steps 2 and 3.
+
+1. Settings › Models & keys: choose **ChatGPT plan** as the provider, then **Continue with ChatGPT**.
+   - [ ] **Expect:** OpenAI's sign-in opens in a small window. After you sign in and agree, the window closes by itself, and Settings shows "Signed in as" your email, "Using ChatGPT plan", and a one-time "You're using your ChatGPT plan" note.
+2. Click the reload button next to Model, pick one, then **Use as main provider**. Run a task from section 2.
+   - [ ] **Expect:** it works as with a key; the model button says ChatGPT plan.
+3. Click **Manage usage**.
+   - [ ] **Expect:** ChatGPT's usage page opens.
+4. **Sign out**, then **Continue with ChatGPT** again, and close the window without signing in.
+   - [ ] **Expect:** "Signed out of ChatGPT", then "You closed the sign-in window, so nothing changed."
+5. Sign in again.
+   - [ ] **Expect:** it's quicker the second time (same account), and tasks work again.
 
 ### Reporting back
 
