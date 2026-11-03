@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { ArrowUpRight, Check, KeyRound, LoaderCircle, Settings, X } from 'lucide-react';
 import { PROVIDERS, type ProviderId } from '@/lib/api/providers';
 import ChatGPTButton from '@/components/ChatGPTButton';
+import ProviderIcon from '@/components/ProviderIcon';
 import { send } from '../hooks';
 
 const CHOICES: { id: ProviderId; name: string; hint: string; suggested?: boolean }[] = [
@@ -127,6 +128,7 @@ export default function Setup({ onOpenSettings, onReady }: Props) {
                 <span className={`w-[14px] h-[14px] rounded-full border-[1.5px] grid place-items-center flex-none ${provider === c.id ? 'border-accent' : 'border-border-strong'}`}>
                   {provider === c.id && <span className="w-[6px] h-[6px] rounded-full bg-accent" />}
                 </span>
+                <ProviderIcon id={c.id} size={18} />
                 <span className="flex-1 min-w-0">
                   <span className="block font-medium">{c.name}</span>
                   <span className="block text-[11.5px] text-muted">{c.hint}</span>

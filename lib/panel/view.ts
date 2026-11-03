@@ -115,6 +115,33 @@ export function siteOf(url: string | undefined): string {
   }
 }
 
+/**
+ * Whether Tabi can read and act on the page at `url`. Browsers keep their own
+ * pages (the new tab page, settings, chrome://, about:, other extensions) and
+ * their extension stores closed to extensions; an address Tabi isn't shown is
+ * one of those. Files need "Allow access to file URLs".
+ */
+export function canWorkOn(url: string | undefined, fileAccess = true): boolean {
+  try {
+    const u = new URL(url ?? '');
+    if (u.protocol === 'file:') return fileAccess;
+    if (!/^https?:$/.test(u.protocol)) return false;
+    const store = u.host === 'chromewebstore.google.com'
+      || (u.host === 'chrome.google.com' && u.pathname.startsWith('/webstore'))
+      || (u.host === 'microsoftedge.microsoft.com' && u.pathname.startsWith('/addons'));
+    return !store;
+  } catch {
+    return false;
+  }
+}
+
+/** Why Tabi won't start on a page it can't work on. */
+export function cantWorkText(url: string | undefined): string {
+  return /^file:/.test(url ?? '')
+    ? 'To use Tabi on files, turn on “Allow access to file URLs” for Tabi on the browser’s extensions page.'
+    : 'Tabi can’t work on browser pages like this one. Open a website, then try again.';
+}
+
 /** Path, query and fragment, for the site row. */
 export function pathOf(url: string | undefined): string {
   try {

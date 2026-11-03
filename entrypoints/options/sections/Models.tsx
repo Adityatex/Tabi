@@ -8,7 +8,8 @@ import { PROVIDERS, PROVIDER_IDS, type ProviderId } from '@/lib/api/providers';
 import { USAGE_URL } from '@/lib/api/chatgptAuth';
 import type { ModelInfo } from '@/lib/api/llmClient';
 import ChatGPTButton from '@/components/ChatGPTButton';
-import { Card, Field, Notice, PageHead, Select, TextInput, Toggle, send } from '../ui';
+import ProviderIcon from '@/components/ProviderIcon';
+import { Card, Field, ModelInput, Notice, PageHead, Select, TextInput, Toggle, send } from '../ui';
 
 interface Settings {
   provider: ProviderId;
@@ -85,7 +86,6 @@ function ChatGPTSignIn({ account, onSignedIn, onSignedOut }: {
           <span className="flex-1 min-w-[220px] flex flex-col">
             <span className="text-[13px]">Signed in as <span className="font-medium">{account.email}</span></span>
             <span className={`text-[12px] ${account.planUsage ? 'text-green' : 'text-amber'}`}>{account.planUsage ? 'Using ChatGPT plan' : 'Plan usage isn’t available for this account'}</span>
-            {account.planUsage && <span className="text-[12px] text-muted mt-[2px]">On Plus, the 5-hour limit is shared with ChatGPT and your other apps.</span>}
           </span>
           <a href={USAGE_URL} target="_blank" rel="noreferrer" className="btn btn-secondary h-[34px]">Manage usage</a>
           <button type="button" className="btn btn-quiet h-[34px]" onClick={leave}>Sign out</button>
@@ -101,7 +101,7 @@ function ChatGPTSignIn({ account, onSignedIn, onSignedOut }: {
     <div className="sm:col-span-2 flex flex-col gap-[10px]" data-testid="chatgpt-sign-in">
       <div>
         <div className="font-semibold text-[13.5px]">Use your ChatGPT plan</div>
-        <p className="text-[12px] text-muted mt-[2px] max-w-[560px] [text-wrap:pretty]">With a paid ChatGPT plan, Tabi can use your plan instead of an API key. Its requests count toward your plan’s usage, which you can manage in ChatGPT’s settings. On Plus, the 5-hour limit is shared with ChatGPT and your other apps.</p>
+        <p className="text-[12px] text-muted mt-[2px] max-w-[560px] [text-wrap:pretty]">Instead of an API key, with a paid ChatGPT plan. Tabi’s requests count toward the plan’s usage.</p>
       </div>
       <div className="flex items-center gap-3 flex-wrap">
         <ChatGPTButton onClick={() => start()} disabled={status.state === 'waiting'} />
@@ -128,6 +128,7 @@ function ProviderEditor({ settings, initial, mode, exclude = [], onSaved, onCanc
   const [showKey, setShowKey] = useState(false);
   const [url, setUrl] = useState(settings.customBaseUrl);
   const [models, setModels] = useState<ModelInfo[]>([]);
+  const [listError, setListError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
   const preset = PROVIDERS[provider];
@@ -142,6 +143,7 @@ function ProviderEditor({ settings, initial, mode, exclude = [], onSaved, onCanc
     setKey('');
     setReplacing(false);
     setModels([]);
+    setListError(null);
     setResult(null);
   }, [provider]); // eslint-disable-line react-hooks/exhaustive-deps
   // Saved settings came back: the typed key is now the saved one; what the save said stays
@@ -152,13 +154,19 @@ function ProviderEditor({ settings, initial, mode, exclude = [], onSaved, onCanc
 
   const dirty = provider !== initial || model.trim() !== savedModel || !!key.trim() || (provider === 'custom' && url !== settings.customBaseUrl) || mode === 'backup' && !settings.fallbacks.includes(provider);
 
-  /** List the models the key can use: tests the key too. */
-  const test = async () => {
+  /** List the models the key can use: tests the key too. `quiet`: only the list, for the model dropdown. */
+  const test = async (quiet = false) => {
     setBusy('Testing');
-    setResult(null);
+    setListError(null);
+    if (!quiet) setResult(null);
     const started = Date.now();
     const res = await send<{ models: ModelInfo[] }>('LIST_MODELS', { provider, apiKey: key.trim(), customBaseUrl: url.trim() });
     setBusy(null);
+    if (quiet) {
+      if (res.success) setModels(res.data?.models ?? []);
+      else setListError(res.error ?? 'Couldn’t list the models');
+      return;
+    }
     if (!res.success) {
       setResult({ ok: false, text: res.error ?? 'It didn’t work' });
       onTested?.(false);
@@ -196,17 +204,21 @@ function ProviderEditor({ settings, initial, mode, exclude = [], onSaved, onCanc
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-4">
       <Field label="Provider">
-        <Select value={provider} onChange={(v) => setProvider(v as ProviderId)} label="Provider">
-          {options.map((id) => <option key={id} value={id}>{PROVIDERS[id].label}{free(id) ? ' · free tier' : ''}</option>)}
-        </Select>
+        <Select value={provider} onChange={(v) => setProvider(v as ProviderId)} label="Provider" options={options.map((id) => ({ value: id, label: PROVIDERS[id].label, hint: free(id) ? 'Free tier' : undefined, icon: <ProviderIcon id={id} /> }))} />
       </Field>
       <Field label="Model">
         <span className="flex gap-[6px]">
-          <TextInput mono list={`models-${mode}`} value={model} onChange={(e) => setModel(e.target.value)} placeholder={preset.defaultModel ?? 'Model id'} aria-label="Model" className="flex-1" />
-          <datalist id={`models-${mode}`}>
-            {models.map((m) => <option key={m.id} value={m.id} label={[m.free && 'free', m.mayTrain && 'may train on your data'].filter(Boolean).join(' · ') || undefined} />)}
-          </datalist>
-          <button type="button" title="Reload model list" aria-label="Reload model list" onClick={test} className="w-[34px] h-[34px] grid place-items-center rounded-ctl border border-border-strong text-muted flex-none hover:text-text">
+          <ModelInput
+            value={model}
+            onChange={setModel}
+            models={models}
+            loading={busy === 'Testing'}
+            error={listError}
+            onOpen={() => test(true)}
+            placeholder={preset.defaultModel ?? 'Model id'}
+            className="flex-1"
+          />
+          <button type="button" title="Reload model list" aria-label="Reload model list" onClick={() => test()} className="w-[34px] h-[34px] grid place-items-center rounded-ctl border border-border-strong text-muted flex-none hover:text-text">
             <RefreshCw size={14} className={busy === 'Testing' ? 'animate-spin' : ''} aria-hidden />
           </button>
         </span>
@@ -247,7 +259,7 @@ function ProviderEditor({ settings, initial, mode, exclude = [], onSaved, onCanc
                 <span className="flex-1 font-mono text-[12px] truncate">{masked}</span>
               </span>
             )}
-            <button type="button" className="btn btn-secondary h-[34px]" onClick={test} disabled={!!busy || (editingKey && !key.trim() && !masked)}>Test</button>
+            <button type="button" className="btn btn-secondary h-[34px]" onClick={() => test()} disabled={!!busy || (editingKey && !key.trim() && !masked)}>Test</button>
             {masked && !replacing && <button type="button" className="btn btn-quiet h-[34px]" onClick={() => setReplacing(true)}>Replace</button>}
             {replacing && <button type="button" className="btn btn-quiet h-[34px]" onClick={() => { setReplacing(false); setKey(''); }}>Keep the saved key</button>}
           </div>
@@ -286,6 +298,7 @@ function BackupRow({ id, index, count, settings, onMove, onRemove, dragging, onD
     >
       <GripVertical size={15} className={`flex-none ${dragging ? 'text-accent cursor-grabbing' : 'text-muted cursor-grab'}`} aria-hidden />
       <span className="font-mono text-[12px] text-muted w-[14px]">{index + 1}</span>
+      <ProviderIcon id={id} size={16} />
       <div className="flex-1 min-w-0">
         <div className="font-medium">{PROVIDERS[id].label}</div>
         <div className="font-mono text-[11.5px] text-muted truncate">{[model, settings.maskedKeys[id]].filter(Boolean).join(' · ')}</div>
@@ -315,6 +328,13 @@ export default function Models() {
   const [drag, setDrag] = useState<number | null>(null);
   const [fast, setFast] = useState<{ provider: ProviderId | ''; model: string; on: boolean }>({ provider: '', model: '', on: false });
   const [fastResult, setFastResult] = useState<{ ok: boolean; text: string } | null>(null);
+  const [fastModels, setFastModels] = useState<{ provider: ProviderId | ''; list: ModelInfo[]; loading: boolean; error: string | null }>({ provider: '', list: [], loading: false, error: null });
+  /** The fast provider's models, with its saved key. */
+  const listFast = async (provider: ProviderId) => {
+    setFastModels({ provider, list: [], loading: true, error: null });
+    const res = await send<{ models: ModelInfo[] }>('LIST_MODELS', { provider, apiKey: '', customBaseUrl: settings?.customBaseUrl ?? '' });
+    setFastModels({ provider, list: res.data?.models ?? [], loading: false, error: res.success ? null : res.error ?? 'Couldn’t list the models' });
+  };
   const orderRef = useRef<ProviderId[]>([]);
 
   const load = useCallback(async () => {
@@ -360,13 +380,13 @@ export default function Models() {
 
   return (
     <>
-      <PageHead title="Models & keys">Tabi uses your own API keys, or your ChatGPT plan. Keys and sign-ins are stored only in this browser and sent only to the provider you pick.</PageHead>
+      <PageHead title="Models & keys">Your own API keys, or your ChatGPT plan. Kept only in this browser.</PageHead>
 
       <Card title="Main provider" note="Plans the task and decides each step." right={pill}>
         <ProviderEditor settings={settings} initial={main} mode="main" exclude={[]} onSaved={load} onTested={setTested} onAccount={load} />
       </Card>
 
-      <Card title="Backup providers" note="If your main provider hits a rate limit, the next one takes over mid-task, with the same plan and progress. Drag to change the order." bare testId="backups">
+      <Card title="Backup providers" note="If your main provider hits a rate limit, the next one takes over mid-task. Drag to reorder." bare testId="backups">
         <div className="px-3 py-2">
           {order.length > 0 && (
             <ol aria-label="Backup providers">
@@ -404,7 +424,7 @@ export default function Models() {
           <div className="flex gap-4 items-start">
             <div className="flex-1">
               <div className="font-semibold text-[14px]">Fast model for routine steps</div>
-              <div className="text-[12px] text-muted mt-[2px] max-w-[560px] [text-wrap:pretty]">A quick, cheap model handles simple steps like typing into a field. Your main model still plans and checks the result. Saves calls on free tiers, and a smaller model on the same provider often has a quota of its own.</div>
+              <div className="text-[12px] text-muted mt-[2px] max-w-[560px] [text-wrap:pretty]">A quicker, cheaper model for simple steps like typing into a field. Your main model still plans and checks.</div>
             </div>
             <Toggle
               on={fast.on}
@@ -418,13 +438,19 @@ export default function Models() {
           {fast.on && (
             <div className="flex gap-2 items-end flex-wrap">
               <Field label="Provider" className="w-[220px]">
-                <Select value={fast.provider} onChange={(v) => setFast((f) => ({ ...f, provider: v as ProviderId }))} label="Fast model provider">
-                  <option value="">Choose…</option>
-                  {settings.ready.map((id) => <option key={id} value={id}>{PROVIDERS[id].label}</option>)}
-                </Select>
+                <Select value={fast.provider} onChange={(v) => setFast((f) => ({ ...f, provider: v as ProviderId }))} label="Fast model provider" options={settings.ready.map((id) => ({ value: id, label: PROVIDERS[id].label, icon: <ProviderIcon id={id} /> }))} />
               </Field>
               <Field label="Fast model" className="flex-1 min-w-[200px] max-w-[360px]">
-                <TextInput mono value={fast.model} onChange={(e) => setFast((f) => ({ ...f, model: e.target.value }))} placeholder="e.g. llama-3.1-8b-instant" />
+                <ModelInput
+                  label="Fast model"
+                  value={fast.model}
+                  onChange={(model) => setFast((f) => ({ ...f, model }))}
+                  models={fastModels.provider === fast.provider ? fastModels.list : []}
+                  loading={fastModels.provider === fast.provider && fastModels.loading}
+                  error={fastModels.provider === fast.provider ? fastModels.error : null}
+                  onOpen={() => { if (fast.provider) listFast(fast.provider); }}
+                  placeholder="e.g. llama-3.1-8b-instant"
+                />
               </Field>
               <button type="button" className="btn btn-secondary h-[34px]" disabled={!fast.provider || !fast.model.trim()} onClick={() => saveFast(fast.provider, fast.model)}>Save</button>
             </div>

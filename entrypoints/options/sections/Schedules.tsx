@@ -82,11 +82,11 @@ export default function Schedules() {
 
   return (
     <>
-      <PageHead title="Schedules">Run a workflow or shortcut on its own, in a background tab. You get a notification with the result, and the tab closes if it worked.</PageHead>
+      <PageHead title="Schedules">A workflow or shortcut that runs on its own, in a background tab.</PageHead>
 
       <Card bare testId="schedules">
         {schedules.length === 0 ? (
-          <div className="p-5"><Empty icon={CalendarClock} title="No schedules yet">Add one below: a workflow replays with no AI calls, a shortcut uses your model each time.</Empty></div>
+          <div className="p-5"><Empty icon={CalendarClock} title="No schedules yet" /></div>
         ) : (
           <div className="overflow-x-auto">
             <div className="min-w-[640px]">
@@ -126,16 +126,21 @@ export default function Schedules() {
 
       <Card title="Add a schedule" bare>
         {workflows.length + shortcuts.length === 0 ? (
-          <div className="p-5"><Notice kind="info">Save a workflow or shortcut first (from the side panel, after a task finishes); then it can run on a schedule.</Notice></div>
+          <div className="p-5"><Notice kind="info">Save a workflow or shortcut from the side panel first, after a task finishes.</Notice></div>
         ) : (
           <>
             <div className="px-5 py-[18px] grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-4">
               <Field label="What to run">
-                <Select value={draft.target} onChange={(v) => setDraft((d) => ({ ...d, target: v }))} mono label="What to run">
-                  <option value="">Choose…</option>
-                  {workflows.map((w) => <option key={`w:${w.name}`} value={`workflow:${w.name}`}>/{w.name} · workflow, no AI calls</option>)}
-                  {shortcuts.map((s) => <option key={`s:${s.name}`} value={`shortcut:${s.name}`}>/{s.name} · shortcut</option>)}
-                </Select>
+                <Select
+                  value={draft.target}
+                  onChange={(v) => setDraft((d) => ({ ...d, target: v }))}
+                  mono
+                  label="What to run"
+                  options={[
+                    ...workflows.map((w) => ({ value: `workflow:${w.name}`, label: `/${w.name}`, hint: 'Workflow · no AI calls' })),
+                    ...shortcuts.map((s) => ({ value: `shortcut:${s.name}`, label: `/${s.name}`, hint: 'Shortcut' })),
+                  ]}
+                />
               </Field>
               {picked ? (
                 <Field label="Page to start on">
@@ -153,9 +158,7 @@ export default function Schedules() {
               <div className="flex gap-[10px]">
                 {draft.frequency === 'weekly' && (
                   <Field label="Day" className="flex-1">
-                    <Select value={draft.weekday} onChange={(v) => setDraft((d) => ({ ...d, weekday: Number(v) }))} label="Day">
-                      {DAYS.map((day, i) => <option key={day} value={i}>{day}</option>)}
-                    </Select>
+                    <Select value={draft.weekday} onChange={(v) => setDraft((d) => ({ ...d, weekday: Number(v) }))} label="Day" options={DAYS.map((day, i) => ({ value: String(i), label: day }))} />
                   </Field>
                 )}
                 {draft.frequency !== 'hourly'
@@ -169,7 +172,7 @@ export default function Schedules() {
             </div>
             <div className="px-5 pb-[18px] flex items-center gap-3 flex-wrap">
               <button type="button" className="btn btn-primary" disabled={!draft.target} onClick={add}>Add schedule</button>
-              <span className="text-[12px] text-muted">Schedules only run while Chrome is open. If one is missed, it runs when you’re back.</span>
+              <span className="text-[12px] text-muted">Runs while Chrome is open.</span>
             </div>
           </>
         )}

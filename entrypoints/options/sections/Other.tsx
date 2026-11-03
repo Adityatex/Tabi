@@ -68,11 +68,7 @@ export function Autofill() {
 
   return (
     <>
-      <PageHead title="Autofill profile">
-        Your details, for filling in forms: type /autofill in the side panel, or ask Tabi to fill in a form. Tabi matches each question to your
-        details by meaning, so a form asking for a “Contact number” gets your mobile number. Kept only in this browser; sent to your AI provider
-        only when a task fills in a form.
-      </PageHead>
+      <PageHead title="Autofill profile">Your details, for /autofill or any task that fills in a form. Kept only in this browser.</PageHead>
       <Card bare testId="autofill">
         <form className="px-5 py-[18px] flex flex-col gap-3" onSubmit={(e) => { e.preventDefault(); save(); }}>
           <div className="hidden sm:grid grid-cols-[minmax(0,200px)_minmax(0,1fr)_84px] gap-3 text-[12px] font-medium text-muted">
@@ -128,11 +124,10 @@ export function Appearance() {
 
   return (
     <>
-      <PageHead title="Appearance & keyboard">How Tabi looks, the key that opens it, and the toolbar on selected text.</PageHead>
+      <PageHead title="Appearance & keyboard" />
       <Card bare testId="appearance">
         <ControlRow
           title="Theme"
-          note="System follows your computer’s light or dark setting. The change shows everywhere at once, the toolbar on selected text included. The toolbar icon follows the browser, and the cue on a page follows that page."
           control={<Segmented<Theme> label="Theme" value={theme} onChange={choose} options={THEMES} />}
         >
           {error && <Notice kind="error">{error}</Notice>}
@@ -140,14 +135,14 @@ export function Appearance() {
         <KeyboardShortcut
           title="Open Tabi"
           testId="open-shortcut"
-          note="Opens the side panel from any page. Only the browser can change a shortcut: Change opens its shortcuts page. Pick a key the browser doesn’t use, since its own shortcuts win (Ctrl+G is its Find next)."
+          note="From any page. Pick a key the browser doesn’t use itself."
           none="No key opens Tabi right now: the browser may have kept the one Tabi suggested for itself. The toolbar icon and the right-click menu still open it."
         />
         <KeyboardShortcut
           command={ASK_COMMAND}
           title="Ask about the selected text"
           testId="ask-shortcut"
-          note="Opens a small chat about the text you’ve selected, or about the page when nothing is selected. In a text box, it asks how to change what you selected."
+          note="About the selection, or the page when nothing is selected."
           none="No key is set for this: the toolbar on selected text still has an Ask button."
         />
       </Card>
@@ -182,7 +177,7 @@ function SelectionToolbarSetting() {
     <Card bare testId="selection-toolbar">
       <ToggleRow
         title="Toolbar on selected text"
-        note="Select text on any page to ask about it, explain, translate or summarize it: the answer appears in a small chat beside the text, where you can ask follow-ups. Nothing is sent to your AI provider until you press one of its buttons. It uses your fast model when you have one."
+        note="Ask, Explain, Translate and Summarize, beside the text you select. Nothing is sent until you press one."
         on={prefs.enabled}
         onChange={(on) => change({ enabled: on })}
       >
@@ -201,13 +196,13 @@ function SelectionToolbarSetting() {
           </div>
         )}
         {prefs.enabled && prefs.hiddenOn.length === 0 && (
-          <div className="text-[12px] text-muted">To keep it off a site, use “Don’t show on …” in the toolbar’s ⋯ menu there.</div>
+          <div className="text-[12px] text-muted">To hide it on a site, use the toolbar’s ⋯ menu there.</div>
         )}
       </ToggleRow>
       {prefs.enabled && (
         <ToggleRow
           title="Writing tools in text boxes"
-          note="Select text you’re writing (in a comment, an email, a form) to improve it, fix its grammar, shorten it or change its tone, then replace it or insert the result below. Never in password fields."
+          note="Improve, fix, shorten or change the tone of text you’re writing. Never in password fields."
           on={prefs.writing}
           onChange={(on) => change({ writing: on })}
         />
@@ -264,7 +259,7 @@ export function Privacy() {
 
   return (
     <>
-      <PageHead title="Privacy & data">Tabi has no server and no account. Everything below stays in this browser, apart from what each task sends to the AI provider you picked.</PageHead>
+      <PageHead title="Privacy & data">Tabi has no server and no account. Only what a task needs goes to your AI provider.</PageHead>
       <Card title="What’s stored where" bare>
         <dl className="px-5 py-2">
           {STORED.map(([what, where]) => (
@@ -275,7 +270,7 @@ export function Privacy() {
           ))}
         </dl>
       </Card>
-      <Card title="Run history" note={`Tabi keeps the last ${MAX_RUNS} tasks so you can see what a background or scheduled task did. Older ones are dropped.`} bare>
+      <Card title="Run history" note={`The last ${MAX_RUNS} tasks, step by step.`} bare>
         <div className="px-5 py-4 flex items-center gap-3 flex-wrap">
           <span className="flex items-center gap-2 text-muted"><Database size={14} aria-hidden />{runs === null ? '…' : `${runs} saved run${runs === 1 ? '' : 's'}`}</span>
           <div className="flex-1" />
@@ -306,7 +301,8 @@ export function About() {
       <PageHead title="About" />
       <Card bare>
         <div className="px-5 py-5 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-[10px] bg-accent grid place-items-center flex-none"><TabiMark size={28} color="#fff" label="" /></div>
+          {/* The app icon (public/icons): always the brand blue, not the accent, which dark mode lightens */}
+          <div className="w-12 h-12 rounded-[10px] bg-[#2B45D8] grid place-items-center flex-none"><TabiMark size={28} color="#fff" label="" /></div>
           <div className="flex-1">
             <div className="font-semibold text-[16px]">Tabi <span className="font-mono text-[12px] text-muted font-normal">v{version}</span></div>
             <div className="text-muted">An open-source browser agent. Bring your own AI key. MIT licensed.</div>

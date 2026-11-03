@@ -20,7 +20,7 @@ import { askPage, send, useCurrentTab, useRuns, useSettings, useTasks, type Mode
 import type { RunView } from '@/lib/agent/runner';
 import { isAgentCommand } from '@/lib/agent/history';
 import { blanks, fillPrompt, type PickerItem } from '@/lib/shortcuts/shortcut';
-import { markState } from '@/lib/panel/view';
+import { canWorkOn, cantWorkText, markState } from '@/lib/panel/view';
 
 /** What the middle of the panel shows for a tab. */
 type Show = 'idle' | 'run' | 'answers';
@@ -44,6 +44,16 @@ const COMMAND_TITLE: Record<Command, string> = { summarize: 'Summarize this page
 export default function App() {
   const tab = useCurrentTab();
   const tabId = tab?.id;
+
+  // The browser's own pages (new tab, settings) and the extension stores are closed to Tabi: say so instead of starting
+  const [fileAccess, setFileAccess] = useState(true);
+  useEffect(() => { browser.extension.isAllowedFileSchemeAccess().then(setFileAccess).catch(() => {}); }, []);
+  const offPage = !!tab && !canWorkOn(tab.url, fileAccess);
+  const refuseHere = () => {
+    if (!offPage) return false;
+    setNotice(cantWorkText(tab?.url));
+    return true;
+  };
   const [states, setStates] = useState<Map<number, TabState>>(new Map());
   const state = (tabId !== undefined && states.get(tabId)) || EMPTY;
   const update = useCallback((id: number, change: (s: TabState) => Partial<TabState>) => {
@@ -89,7 +99,7 @@ export default function App() {
     update(id, (s) => ({ answers: s.answers.map((a) => (a.id === answerId ? { ...a, ...done } : a)) }));
 
   const ask = async (question: string) => {
-    if (tabId === undefined) return;
+    if (tabId === undefined || refuseHere()) return;
     const id = newId();
     addAnswer(tabId, { id, question, canDo: true });
     try {
@@ -103,7 +113,7 @@ export default function App() {
   };
 
   const runCommand = async (command: Command, text?: string) => {
-    if (tabId === undefined) return;
+    if (tabId === undefined || refuseHere()) return;
     const id = newId();
     // Autofill is a task: the agent matches the form's questions to the profile by meaning, and fills any kind of field
     if (command === 'autofill') {
@@ -166,9 +176,11 @@ export default function App() {
 
   // ---- Tasks
   const [notice, setNotice] = useState<string | null>(null);
+  // On a website again: the note about browser pages no longer applies
+  useEffect(() => { if (!offPage) setNotice((n) => (n === cantWorkText('') || n === cantWorkText('file:') ? null : n)); }, [offPage]);
   /** Run a task: `goal` by the agent, with `skill` in its prompt if the user chose one, or `workflow` replayed. */
   const startTask = async (goal: string, opts: { workflow?: string; skill?: string; autofill?: boolean } = {}) => {
-    if (tabId === undefined) return;
+    if (tabId === undefined || (!opts.workflow && refuseHere())) return;
     const skill = { ...(opts.skill ? { skill: opts.skill } : {}), ...(opts.autofill ? { autofill: true } : {}) };
     if (background) {
       const res = await send('START_BACKGROUND_TASK', { tabId, ...(opts.workflow ? { workflow: opts.workflow } : { goal, ...skill }) });
@@ -218,6 +230,10 @@ export default function App() {
   const submit = async () => {
     const text = value.trim();
     if (!text || tabId === undefined) return;
+    if (offPage && !text.startsWith('/') && !(showRun && run?.status === 'paused')) {
+      refuseHere();
+      return;
+    }
     setValue('');
     setNotice(null);
     if (guessed) {
@@ -291,8 +307,9 @@ export default function App() {
   const backup = showRun && !!run?.model && !!model.main && run.model !== model.main && run.model !== model.fast;
   const needsYou = showRun && run!.status === 'paused';
   // In Auto, say what a sentence being typed will do (not for /commands, background tasks, or hints)
-  const showGuess = mode === 'auto' && !background && !needsYou && value.trim().length >= 12 && !value.startsWith('/');
+  const showGuess = mode === 'auto' && !background && !needsYou && !offPage && value.trim().length >= 12 && !value.startsWith('/');
   const placeholder = !model.ready ? 'Finish setup to start'
+    : offPage && !showRun ? 'Open a website to start'
     : needsYou ? (run!.asking ? 'Answer above, or tell Tabi something else' : 'Answer above, or give Tabi a hint')
     : mode === 'answer' ? 'Ask about this page' : 'Ask about this page or tell Tabi what to do';
 
@@ -369,6 +386,7 @@ export default function App() {
     body = (
       <Idle
         url={tab?.url}
+        offPage={offPage}
         workflows={pickerItems.filter((i) => i.kind === 'workflow')}
         recent={recent}
         onSlash={() => setValue('/')}

@@ -10,7 +10,7 @@ interface McpState { enabled: boolean; hasToken: boolean; status: BridgeStatus; 
 
 const STATUS: Record<BridgeStatus, { text: string; tone: string; dot: string }> = {
   off: { text: 'Off', tone: 'text-muted', dot: 'bg-border-strong' },
-  waiting: { text: 'On · waiting for tabi-mcp, which starts when your AI app uses Tabi', tone: 'text-muted', dot: 'bg-accent' },
+  waiting: { text: 'On · waiting for your AI app', tone: 'text-muted', dot: 'bg-accent' },
   connected: { text: 'Connected to your AI app', tone: 'text-green', dot: 'bg-green' },
   rejected: { text: 'Not connected', tone: 'text-red', dot: 'bg-red' },
 };
@@ -43,7 +43,7 @@ export default function Mcp() {
   const status = STATUS[mcp.status];
   return (
     <>
-      <PageHead title="AI apps (MCP)">Let Claude Code, Claude Desktop, Codex or any MCP app on this computer drive the browser through Tabi. The model runs in that app, on your plan with it. Your safety rules still apply.</PageHead>
+      <PageHead title="AI apps (MCP)">Let an AI app on this computer, like Claude Code or Codex, use this browser through Tabi. Your safety rules still apply.</PageHead>
 
       <Card bare testId="mcp">
         <div className="px-5 py-4 flex gap-4 items-start border-b border-border">
@@ -72,7 +72,7 @@ export default function Mcp() {
               {replacing && <button type="button" className="btn btn-quiet h-[34px]" onClick={() => { setReplacing(false); setToken(''); }}>Cancel</button>}
             </form>
           )}
-          <span className="text-[12px] text-muted">The token proves to Tabi that it’s talking to your tabi-mcp. Making a new one (<code className="font-mono">tabi-mcp new-token</code>) disconnects apps using the old one.</span>
+          <span className="text-[12px] text-muted">A new one (<code className="font-mono">tabi-mcp new-token</code>) disconnects apps using the old one.</span>
           {error && <Notice kind="error">{error}</Notice>}
         </div>
         <div className="px-5 py-4 flex flex-col gap-3">

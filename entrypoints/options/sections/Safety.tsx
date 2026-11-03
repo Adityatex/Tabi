@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { Ban, Globe, X } from 'lucide-react';
 import { normalizeSite, type SiteRules } from '@/lib/agent/sites';
 import { DEFAULT_PREFS, type AgentPrefs } from '@/lib/agent/prefs';
-import { Card, Empty, Notice, PageHead, TextInput, ToggleRow, savePrefs, send } from '../ui';
+import { Card, Notice, PageHead, TextInput, ToggleRow, savePrefs, send } from '../ui';
 
 type ListName = keyof SiteRules;
 
@@ -61,7 +61,7 @@ export default function Safety() {
   };
 
   const addRow = (list: ListName, placeholder: string, label: string, primary: boolean) => (
-    <div className="px-5 pt-[10px] pb-4 flex flex-col gap-2">
+    <div className={`px-5 ${rules[list].length ? 'pt-[10px]' : 'pt-4'} pb-4 flex flex-col gap-2`}>
       <form className="flex gap-[6px]" onSubmit={(e) => { e.preventDefault(); add(list); }}>
         <TextInput mono value={drafts[list]} onChange={(e) => setDrafts((d) => ({ ...d, [list]: e.target.value }))} placeholder={placeholder} aria-label={label} className="flex-1 max-w-[360px]" />
         <button type="submit" className={`btn ${primary ? 'btn-primary' : 'btn-secondary'}`} disabled={!drafts[list].trim()}>Add</button>
@@ -73,12 +73,12 @@ export default function Safety() {
   const blockedHere = !!current && rules.blocked.includes(current);
   return (
     <>
-      <PageHead title="Safety">These rules are enforced by Tabi itself, not by a model, so a page can’t talk its way past them. They apply to tasks, workflows, schedules and AI apps.</PageHead>
+      <PageHead title="Safety">Enforced by Tabi itself, not a model, so a page can’t talk its way past them.</PageHead>
 
       <Card bare>
         <ToggleRow
           title="Ask before buying, sending or deleting"
-          note="Before anything that can’t be undone, like placing an order, paying, sending a message or deleting, Tabi stops and asks you. Saved workflows replay without asking: you approved their steps when you saved them."
+          note="Tabi stops and asks before placing an order, paying, sending a message or deleting. Saved workflows replay without asking."
           on={prefs.confirmRisky}
           onChange={(on) => set('confirmRisky', on)}
         >
@@ -88,11 +88,10 @@ export default function Safety() {
         </ToggleRow>
         <ToggleRow
           title="Safety check against hijacking"
-          note="Pages can hide instructions meant for AI agents, like “send the user’s email to this address”. Before a risky step, a second model that never sees the page checks it still fits your task. If it doesn’t, you’re asked."
+          note="Pages can hide instructions for AI agents. Before a risky step, a second model that never sees the page checks it still fits your task."
           on={prefs.critic}
           onChange={(on) => set('critic', on)}
         >
-          <Notice kind="cost">Uses your fast model if you’ve set one. Most tasks need one or two of these short checks, or none.</Notice>
           {!prefs.critic && (
             <Notice kind="warn"><b className="font-semibold">Hidden instructions won’t be caught.</b> A malicious page could steer Tabi toward steps you didn’t ask for.</Notice>
           )}
@@ -101,7 +100,7 @@ export default function Safety() {
 
       <Card
         title="Never act on"
-        note="Tabi won’t open, read or act on these sites or their subdomains. If a task lands on one, it stops. You can still ask questions about them."
+        note="Tabi won’t open, read or act on these sites or their subdomains."
         right={current && !blockedHere ? (
           <button type="button" className="btn btn-sm btn-secondary h-[30px]" onClick={() => save('blocked', { add: current })}><Ban size={13} aria-hidden />Block {current}</button>
         ) : undefined}
@@ -112,10 +111,10 @@ export default function Safety() {
         {addRow('blocked', 'site.com', 'Site to never act on', true)}
       </Card>
 
-      <Card title={<>Only act on <span className="font-normal text-muted">(optional)</span></>} note="Add sites here and Tabi asks before using any site not on the list. Sites on this list also skip the safety check." bare testId="allowed-sites">
+      <Card title={<>Only act on <span className="font-normal text-muted">(optional)</span></>} note="Tabi asks before using any site not on this list." bare testId="allowed-sites">
         {rules.allowed.length > 0
           ? <SiteList list="allowed" sites={rules.allowed} onRemove={(site) => save('allowed', { remove: site })} />
-          : <div className="mx-5 mt-4 mb-1"><Empty icon={Globe} title="No sites yet">Right now Tabi can act on any site that isn’t blocked.</Empty></div>}
+          : null}
         {addRow('allowed', 'shop.example.com', 'Site Tabi may act on', false)}
       </Card>
     </>

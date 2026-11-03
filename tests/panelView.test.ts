@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { markState, statusPill, planItems, formatElapsed, failureKind, failedProvider, siteOf, pathOf, when, foldLongRun, splitSources } from '@/lib/panel/view';
+import { markState, statusPill, planItems, formatElapsed, failureKind, failedProvider, siteOf, pathOf, when, foldLongRun, splitSources, canWorkOn, cantWorkText } from '@/lib/panel/view';
 import type { RunView } from '@/lib/agent/runner';
 
 const run = (over: Partial<RunView>): RunView => ({ goal: 'g', status: 'running', message: '', loading: true, step: 1, plan: [], updatedAt: 0, steps: [], ...over });
@@ -106,5 +106,27 @@ describe('answer sources', () => {
   it('leaves an answer without sources alone', () => {
     expect(splitSources('Just an answer.')).toEqual({ answer: 'Just an answer.', sources: [] });
     expect(splitSources('Answer\n\n**Sources:**\n1. Header | Welcome back').sources).toEqual([{ label: 'Header', quote: 'Welcome back' }]);
+  });
+});
+
+describe('pages Tabi can work on', () => {
+  it('works on websites and, with access, files', () => {
+    expect(canWorkOn('https://example.com/a')).toBe(true);
+    expect(canWorkOn('http://127.0.0.1:5173/')).toBe(true);
+    expect(canWorkOn('file:///C:/notes.html')).toBe(true);
+    expect(canWorkOn('file:///C:/notes.html', false)).toBe(false);
+  });
+  it('not on the browser’s own pages, other extensions or the extension stores', () => {
+    for (const url of ['chrome://newtab/', 'chrome://settings/', 'edge://newtab/', 'brave://newtab/', 'about:blank', 'chrome-extension://abc/page.html',
+      'view-source:https://example.com/', 'https://chromewebstore.google.com/detail/x', 'https://chrome.google.com/webstore/detail/x',
+      'https://microsoftedge.microsoft.com/addons/detail/x', undefined, '']) {
+      expect(canWorkOn(url), String(url)).toBe(false);
+    }
+    // Only the store's own pages: the rest of those sites are ordinary
+    expect(canWorkOn('https://chrome.google.com/intl/en/chrome/')).toBe(true);
+  });
+  it('says why, and what to do', () => {
+    expect(cantWorkText('chrome://newtab/')).toMatch(/Open a website/);
+    expect(cantWorkText('file:///C:/a.html')).toMatch(/Allow access to file URLs/);
   });
 });

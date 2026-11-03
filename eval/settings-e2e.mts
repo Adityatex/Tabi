@@ -14,7 +14,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { startFixtureServer } from './server.mts';
-import { openPanel } from './panel.mts';
+import { openPanel, runState } from './panel.mts';
 
 declare const chrome: any;
 
@@ -63,10 +63,11 @@ async function main(): Promise<void> {
     check('the key shows masked, never in full', (await settings.getByLabel('Saved API key').innerText()).includes('4f2a') && !(await settings.content()).includes(KEY));
 
     // 2. Two backups, then the second moved up
-    for (const [value, provider, key, model] of [['openrouter', 'OpenRouter', 'sk-or-test-91aa', 'deepseek/deepseek-chat'], ['ollama', 'Ollama (local)', '', 'llama3.1:8b']]) {
+    for (const [, provider, key, model] of [['openrouter', 'OpenRouter', 'sk-or-test-91aa', 'deepseek/deepseek-chat'], ['ollama', 'Ollama (local)', '', 'llama3.1:8b']]) {
       await settings.getByRole('button', { name: 'Add a backup' }).click();
       const editor = settings.locator('[data-testid="backups"]');
-      await editor.getByRole('combobox', { name: 'Provider' }).selectOption(value);
+      await editor.getByRole('combobox', { name: 'Provider' }).click();
+      await editor.getByRole('option', { name: provider }).click();
       if (key) await editor.getByRole('textbox', { name: 'API key' }).fill(key);
       await editor.getByRole('combobox', { name: 'Model' }).fill(model);
       await editor.getByRole('button', { name: 'Save as backup' }).click();
@@ -89,9 +90,11 @@ async function main(): Promise<void> {
     // 4. A schedule, added with the form
     await worker.evaluate(() => chrome.storage.local.set({ tabi_workflows: [{ name: 'order-coffee', goal: 'Order coffee', startUrl: 'https://example.com/', steps: [{ action: { action: 'wait' } }] }] }));
     await settings.getByRole('link', { name: 'Schedules' }).click();
-    await settings.getByRole('combobox', { name: 'What to run' }).selectOption('workflow:order-coffee');
+    await settings.getByRole('combobox', { name: 'What to run' }).click();
+    await settings.getByRole('option', { name: '/order-coffee' }).click();
     await settings.getByRole('radio', { name: 'Weekly' }).click();
-    await settings.getByRole('combobox', { name: 'Day' }).selectOption({ label: 'Friday' });
+    await settings.getByRole('combobox', { name: 'Day' }).click();
+    await settings.getByRole('option', { name: 'Friday' }).click();
     await settings.getByRole('button', { name: 'Add schedule' }).click();
     await settings.getByText('Weekly · Fri 9:00').waitFor({ timeout: 5_000 }).catch(() => {});
     const schedules: any = await worker.evaluate(() => chrome.storage.local.get('tabi_schedules'));
@@ -112,9 +115,8 @@ async function main(): Promise<void> {
     const assigned = await worker.evaluate(() => chrome.commands.getAll().then((c: any[]) => c.find((x) => x.name === '_execute_action')?.shortcut ?? ''));
     await settings.getByRole('link', { name: 'Appearance & keyboard' }).click();
     const shown = await settings.getByTestId('open-shortcut').innerText({ timeout: 5_000 }).catch(() => '');
-    const footer = await panel.locator('footer').innerText();
-    check('the open-Tabi shortcut is Alt+T, and Settings and the panel show it',
-      assigned === 'Alt+T' && shown === 'Alt+T' && footer.includes('Alt+T') && !footer.includes('Ctrl+G'), `browser: "${assigned}", Settings: "${shown}"`);
+    check('the open-Tabi shortcut is Alt+T, and Settings shows it',
+      assigned === 'Alt+T' && shown === 'Alt+T', `browser: "${assigned}", Settings: "${shown}"`);
     const askKey = await settings.getByTestId('ask-shortcut').innerText({ timeout: 5_000 }).catch(() => '');
     check('the ask-about-selection shortcut is Alt+J, and Settings shows it', askKey === 'Alt+J', askKey);
 
@@ -182,6 +184,18 @@ async function main(): Promise<void> {
     await idle.getByRole('heading', { name: 'Hi, I’m Tabi.' }).waitFor({ timeout: 5_000 }).catch(() => {});
     const welcome = await idle.innerText().catch(() => '');
     check('off the web, it welcomes you and shows the keys to know', welcome.includes('Hi, I’m Tabi.') && welcome.includes('Alt+T') && welcome.includes('Alt+J'), welcome.slice(0, 200));
+
+    // 10. A browser page Tabi can't work on: it says so, and doesn't start the task
+    const box = panel.getByRole('textbox', { name: /Ask about this page/ });
+    const placeholder = await box.getAttribute('placeholder');
+    await box.fill('Summarize this page');
+    await box.press('Enter');
+    const told = await panel.getByText('Tabi can’t work on browser pages like this one. Open a website, then try again.').waitFor({ timeout: 3_000 }).then(() => true, () => false);
+    // The browser hides this page's address from extensions, so ask by the panel's own tab
+    const started = !!(await runState(panel));
+    check('on a browser page, it says it can’t work there, keeps the text and starts nothing',
+      welcome.includes('can’t work on browser pages') && placeholder === 'Open a website to start' && told && await box.inputValue() === 'Summarize this page' && !started && !(await panel.locator('[data-testid="answers"], [data-testid="ending"]').count()),
+      `placeholder: ${placeholder}, told: ${told}, started: ${started}`);
   } finally {
     await context.close().catch(() => {});
     await fixtures.close();

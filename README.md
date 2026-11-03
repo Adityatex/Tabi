@@ -176,4 +176,4 @@ What is tested, and a step-by-step checklist for testing by hand: [docs/TESTING.
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE). Provider logos are from [Lobe Icons](https://github.com/lobehub/lobe-icons) (MIT); each belongs to its company.

@@ -4,7 +4,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AppWindow, ArrowUp, BookOpen, Check, ChevronDown, FileText, FormInput, MessageCircle, Repeat, TextSelect, Zap, type LucideIcon } from 'lucide-react';
 import { blanks, matchItems, type PickerItem } from '@/lib/shortcuts/shortcut';
-import { useOpenShortcut } from '@/components/useOpenShortcut';
 
 export type Mode = 'auto' | 'answer' | 'do';
 
@@ -46,7 +45,6 @@ export default function Composer(props: Props) {
   const [menu, setMenu] = useState(false);
   const [highlight, setHighlight] = useState(0);
   const [dismissed, setDismissed] = useState(false);
-  const openKey = useOpenShortcut();
 
   // The picker shows while a /name is being typed ("/pri"), not once words follow it
   const typingName = /^\/\S*$/.test(value);
@@ -181,7 +179,6 @@ export default function Composer(props: Props) {
               </div>
             );
           })}
-          <div className="flex gap-3 px-2 pt-2 pb-1 border-t border-border mt-1 text-[11px] text-muted"><span>↑↓ to move</span><span>Tab to pick</span><span>Esc to close</span></div>
         </div>
       )}
       <div className="border border-border rounded-card bg-raised pt-[9px] pr-[9px] pb-[7px] pl-[11px] focus-within:border-border-strong">
@@ -252,15 +249,12 @@ export default function Composer(props: Props) {
             onClick={onSubmit}
             disabled={!canSend}
             aria-label="Send"
+            title="Send (Enter). Shift+Enter starts a new line."
             className={`w-7 h-7 rounded-ctl grid place-items-center ${canSend ? 'bg-accent text-accent-text' : 'bg-border text-muted'}`}
           >
             <ArrowUp size={15} aria-hidden />
           </button>
         </div>
-      </div>
-      <div className="flex justify-between gap-2 text-[11px] text-muted mt-[6px] px-[2px]">
-        <span className="whitespace-nowrap overflow-hidden text-ellipsis">Enter to send · Shift+Enter for a new line</span>
-        {openKey && <span className="font-mono flex-none" title="Opens Tabi from any page. Change it in Settings, Appearance & keyboard">{openKey}</span>}
       </div>
     </footer>
   );

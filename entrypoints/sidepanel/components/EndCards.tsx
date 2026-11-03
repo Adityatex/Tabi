@@ -47,9 +47,8 @@ export function DoneCard({ run, save, offerClosed, onSave, onCloseOffer, onTimel
   return (
     <>
       <div className={card}>
-        <div className="flex items-center gap-2 font-semibold text-[14px]"><TabiMark state="done" size={16} label="" />Done</div>
         <div
-          className="answer mt-2 text-[13.5px] leading-[1.55] [text-wrap:pretty] [overflow-wrap:anywhere]"
+          className="answer text-[13.5px] leading-[1.55] [text-wrap:pretty] [overflow-wrap:anywhere]"
           data-testid="summary"
           onClick={(e) => copyCodeOnClick(e.target)}
           dangerouslySetInnerHTML={{ __html: renderMarkdown(run.outcome || 'Finished.', { copyCode: true }) }}
@@ -86,21 +85,18 @@ export function DoneCard({ run, save, offerClosed, onSave, onCloseOffer, onTimel
       ) : (
         <div className="border border-border rounded-card p-3 bg-bg">
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-[13px] flex-1">Do this again later?</span>
+            <span className="font-semibold text-[13px] flex-1">Save for next time</span>
             <button type="button" className="icon-btn w-6 h-6" aria-label="No thanks" title="No thanks" onClick={onCloseOffer}><X size={14} /></button>
           </div>
           <div className="flex flex-wrap gap-[6px] mt-[10px]">
             {!run.unrecordable && (
-              <button type="button" className="btn btn-sm btn-secondary h-7" disabled={!!save.busy} onClick={() => onSave('workflow')}><Repeat size={12} aria-hidden />Save as workflow</button>
+              <button type="button" className="btn btn-sm btn-secondary h-7" title="Replays these exact steps, with no AI calls" aria-label="Save as workflow" disabled={!!save.busy} onClick={() => onSave('workflow')}><Repeat size={12} aria-hidden />Workflow</button>
             )}
-            <button type="button" className="btn btn-sm btn-secondary h-7" disabled={!!save.busy} onClick={() => onSave('skill')}><BookOpen size={12} aria-hidden />Save as skill</button>
-            <button type="button" className="btn btn-sm btn-secondary h-7" disabled={!!save.busy} onClick={() => onSave('shortcut')}><Zap size={12} aria-hidden />Save as shortcut</button>
+            <button type="button" className="btn btn-sm btn-secondary h-7" title="Teaches Tabi how you like this done" aria-label="Save as skill" disabled={!!save.busy} onClick={() => onSave('skill')}><BookOpen size={12} aria-hidden />Skill</button>
+            <button type="button" className="btn btn-sm btn-secondary h-7" title="Saves the request, to run again with /name" aria-label="Save as shortcut" disabled={!!save.busy} onClick={() => onSave('shortcut')}><Zap size={12} aria-hidden />Shortcut</button>
           </div>
           <SaveResult save={save} />
-          <div className="text-[11.5px] text-muted mt-2 leading-[1.45]">
-            {run.unrecordable ? `It can’t be a workflow: ${run.unrecordable}. ` : 'A workflow replays these exact steps with no AI calls. '}
-            A skill teaches Tabi how you like this done. A shortcut saves the request, with blanks.
-          </div>
+          {run.unrecordable && <div className="text-[11.5px] text-muted mt-2 leading-[1.45]">It can’t be a workflow: {run.unrecordable}.</div>}
         </div>
       ))}
     </>

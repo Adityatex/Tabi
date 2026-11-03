@@ -17,31 +17,27 @@ export default function Agent() {
 
   return (
     <>
-      <PageHead title="Agent">How Tabi works on a page. The defaults suit most people.</PageHead>
+      <PageHead title="Agent">The defaults suit most people.</PageHead>
 
       <Card bare>
         <ToggleRow
           title="Real mouse and keyboard input"
-          note="Many sites ignore clicks and typing made by scripts. While Tabi works, Chrome shows a “started debugging this browser” banner: that’s this, and it goes away when the task ends."
+          note="Many sites ignore scripted clicks and typing. Chrome shows a debugging banner while Tabi works."
           on={prefs.trustedInput}
           onChange={(on) => set('trustedInput', on)}
         />
         <ControlRow
           title="Check in with me every"
-          note="Tasks have no step limit. Tabi pauses here to ask whether to keep going, so a long task doesn’t quietly use up your quota. It also pauses if it keeps repeating something that changes nothing."
+          note="Tabi asks before going on, so a long task doesn’t quietly use up your quota."
           control={(
-            <Select value={prefs.stepCheckpoint} onChange={(v) => set('stepCheckpoint', Number(v))} label="Check in every" className="w-[140px]">
-              {CHECKPOINT_CHOICES.map((n) => <option key={n} value={n}>{n ? `${n} steps` : 'Never'}</option>)}
-            </Select>
+            <Select value={prefs.stepCheckpoint} onChange={(v) => set('stepCheckpoint', Number(v))} label="Check in every" className="w-[140px]" options={CHECKPOINT_CHOICES.map((n) => ({ value: String(n), label: n ? `${n} steps` : 'Never' }))} />
           )}
         />
         <ControlRow
           title="Tasks at once"
-          note="How many tasks may use the model at the same time, in different tabs. More wait in line, since free tiers limit requests per minute. Workflow replays don’t count."
+          note="In different tabs. More wait in line."
           control={(
-            <Select value={prefs.maxParallel} onChange={(v) => set('maxParallel', Number(v))} label="Tasks at once" className="w-[100px]">
-              {PARALLEL_CHOICES.map((n) => <option key={n} value={n}>{n}</option>)}
-            </Select>
+            <Select value={prefs.maxParallel} onChange={(v) => set('maxParallel', Number(v))} label="Tasks at once" className="w-[100px]" options={PARALLEL_CHOICES.map((n) => ({ value: String(n), label: String(n) }))} />
           )}
         />
       </Card>
@@ -49,7 +45,7 @@ export default function Agent() {
       <Card bare>
         <ControlRow
           title="Screenshots for vision models"
-          note="Lets a model that reads images see the page, with each element’s number drawn on it. Useful for visual layouts and canvases the page text doesn’t describe."
+          note="Lets a model that reads images see the page, for layouts the text doesn’t describe."
           control={(
             <Segmented<ScreenshotMode>
               label="Screenshots"
@@ -61,25 +57,24 @@ export default function Agent() {
         >
           {prefs.screenshots !== 'off' && (
             <Notice kind="cost">
-              Each screenshot adds roughly 500 to 1,500 tokens to a step (about 1,300 on Groq’s Qwen).{' '}
+              Each screenshot adds about 500 to 1,500 tokens to a step.{' '}
               {prefs.screenshots === 'always'
-                ? 'On every step that adds up quickly, and free tiers with per-minute limits get slower.'
-                : '“When planning” sends one on the first step, after something goes wrong, and every 5th step: most of the benefit for much less.'}
-              {' '}Models that can’t read images get text only.
+                ? 'On every step that adds up quickly.'
+                : 'This sends one on the first step, after a problem, and every 5th step.'}
             </Notice>
           )}
         </ControlRow>
         <ToggleRow
           title="Native tool calling"
           tag="Experimental"
-          note="The model answers through the provider’s function calling instead of writing JSON, which some models get wrong. Models without it fall back to JSON on their own."
+          note="Uses the provider’s function calling instead of JSON. Models without it fall back to JSON."
           on={prefs.nativeTools}
           onChange={(on) => set('nativeTools', on)}
         />
         <ToggleRow
           title="Let the agent run its own code"
           tag="Advanced"
-          note="For data the built-in extract can’t reach, the model may write a short script that only reads the page. It runs apart from the page’s own scripts, for 10 seconds at most."
+          note="For data the built-in tools can’t reach, the model may write a short script that only reads the page."
           on={prefs.customCode}
           onChange={(on) => set('customCode', on)}
         >

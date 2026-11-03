@@ -53,7 +53,7 @@ export function Skills() {
 
   return (
     <>
-      <PageHead title="Skills">Instructions Tabi follows on tasks you repeat. It uses a skill when it fits the site and the task, or when you name it: type /skill-name in the side panel, then what to do. After a task finishes, the side panel offers “Save as skill”: Tabi writes one from what it just did.</PageHead>
+      <PageHead title="Skills">Instructions Tabi follows on tasks you repeat, when they fit or when you type /name.</PageHead>
       <Card bare testId="skills">
         <div className="px-3 py-2">
           {skills.length > 0 ? (
@@ -113,7 +113,7 @@ export function Workflows() {
 
   return (
     <>
-      <PageHead title="Workflows">A task’s exact steps, replayed with no AI calls: instant and free. If the site has changed, Tabi takes over from the step that no longer fits. Save one from the side panel after a task; run it here or with /name.</PageHead>
+      <PageHead title="Workflows">A task’s exact steps, replayed with no AI calls. If the site changed, Tabi takes over from there.</PageHead>
       <Card bare testId="workflows">
         <div className="px-3 py-2">
           {workflows.length > 0 ? (
@@ -160,7 +160,7 @@ export function Shortcuts() {
 
   return (
     <>
-      <PageHead title="Shortcuts">Requests you make often, run with /name in the side panel. Write the part that changes as a blank in braces, like “Find the price of {'{product}'} on this site”, then type /name running shoes.</PageHead>
+      <PageHead title="Shortcuts">Requests you make often, run with /name. Put the part that changes in braces, like {'{product}'}.</PageHead>
       <Card bare testId="shortcuts">
         <div className="px-3 py-2">
           {shortcuts.length > 0 ? (

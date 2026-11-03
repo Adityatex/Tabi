@@ -15,6 +15,8 @@ export interface RecentRun {
 
 interface Props {
   url?: string;
+  /** A page Tabi can't work on (the new tab page, settings, the Web Store). */
+  offPage?: boolean;
   workflows: PickerItem[];
   recent: RecentRun[];
   /** Opens the / menu in the box. */
@@ -49,8 +51,8 @@ function SlashKey({ onSlash }: { onSlash: () => void }) {
   );
 }
 
-export default function Idle({ url, workflows, recent, onSlash, onRunWorkflow, onOpenRun }: Props) {
-  const site = siteOf(url);
+export default function Idle({ url, offPage, workflows, recent, onSlash, onRunWorkflow, onOpenRun }: Props) {
+  const site = offPage ? '' : siteOf(url);
   const openKey = useOpenShortcut();
   const askKey = useOpenShortcut(ASK_COMMAND);
   const here = site ? workflows.filter((w) => w.site === site).slice(0, 3) : [];
@@ -75,7 +77,9 @@ export default function Idle({ url, workflows, recent, onSlash, onRunWorkflow, o
             <div>
               <h1 className="text-[22px] font-semibold tracking-[-0.025em]">Hi, I’m Tabi.</h1>
               <p className="text-muted mt-[6px] text-[13.5px] leading-[1.5] max-w-[300px]">
-                Open a web page and I’ll read it, answer your questions about it, or do tasks on it for you.
+                {offPage
+                  ? <>I can’t work on browser pages like this one. Open a website and I’ll read it, answer your questions about it, or do tasks on it for you.</>
+                  : <>Open a web page and I’ll read it, answer your questions about it, or do tasks on it for you.</>}
               </p>
             </div>
           </div>

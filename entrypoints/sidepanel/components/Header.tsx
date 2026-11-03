@@ -2,6 +2,7 @@
 // the model menu, History and Settings, then the page the panel is working on.
 import { useEffect, useRef, useState } from 'react';
 import { ArrowUpRight, Check, ChevronsUpDown, History, Plus, RefreshCw, Settings } from 'lucide-react';
+import ProviderIcon from '@/components/ProviderIcon';
 import TabiMark, { type TabiMarkState } from '@/components/TabiMark';
 import { siteOf } from '@/lib/panel/view';
 import type { ModelChoice } from '../hooks';
@@ -112,7 +113,6 @@ export default function Header({ mark, provider, model, status, backup, choices,
               onKeyDown={onMenuKey}
               className="absolute right-2 top-[calc(100%-4px)] w-[280px] max-w-[calc(100vw-20px)] bg-raised border border-border rounded-card shadow-pop p-1 z-30"
             >
-              <div className="t-label px-2 pt-2 pb-1">Model for your tasks</div>
               {choices.map((c) => (
                 <button
                   key={c.id}
@@ -124,6 +124,7 @@ export default function Header({ mark, provider, model, status, backup, choices,
                   className={`w-full flex items-center gap-[9px] px-2 py-[7px] rounded-ctl text-left ${c.rank === 0 ? 'bg-accent-soft' : 'hover:bg-surface'}`}
                 >
                   <span className="w-[13px] flex-none">{c.rank === 0 && <Check size={13} strokeWidth={2.25} className="text-accent" aria-hidden />}</span>
+                  <ProviderIcon id={c.id} size={15} />
                   <span className="flex-1 min-w-0">
                     <span className="block font-medium">{c.name}</span>
                     <span className="block font-mono text-[11px] text-muted truncate">{c.model}</span>
@@ -131,10 +132,7 @@ export default function Header({ mark, provider, model, status, backup, choices,
                   <span className={`text-[11px] flex-none ${c.rank === 0 ? 'font-semibold text-accent' : 'text-muted'}`}>{c.rank === 0 ? 'Main' : `Backup ${c.rank}`}</span>
                 </button>
               ))}
-              <p className="text-[11.5px] text-muted px-2 pt-[6px] pb-2 leading-[1.45]">
-                {choices.length > 1 ? 'Pick one to make it the main model. If the main one hits a rate limit, the next takes over.' : 'Add a backup provider, and Tabi switches to it when this one hits a rate limit.'}
-              </p>
-              <div className="h-px bg-border mx-1 mb-1" />
+              <div className="h-px bg-border mx-1 my-1" />
               <button
                 type="button"
                 role="menuitem"
