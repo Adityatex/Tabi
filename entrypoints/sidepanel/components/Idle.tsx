@@ -5,6 +5,7 @@ import { CircleCheck, CircleStop, CircleX, Play, Repeat } from 'lucide-react';
 import type { PickerItem } from '@/lib/shortcuts/shortcut';
 import { siteOf, when } from '@/lib/panel/view';
 import { useOpenShortcut, ASK_COMMAND } from '@/components/useOpenShortcut';
+import TabiMark from '@/components/TabiMark';
 
 export interface RecentRun {
   id: string;
@@ -25,14 +26,11 @@ interface Props {
   onOpenRun: (id?: string) => void;
 }
 
-/** The big footprint for the welcome: the mark's two capsules, as in TabiMark. */
-function Footprint() {
+/** The welcome's app icon: the footprint in white on Tabi's blue (as public/icons), with a glow of the same blue. */
+function AppIcon() {
   return (
-    <div aria-hidden className="relative w-11 h-11">
-      <div className="absolute inset-0 rotate-[15deg]">
-        <div className="absolute left-[4.84px] top-[10.56px] w-[11.88px] h-[14.96px] rounded-full bg-accent" />
-        <div className="absolute left-[19.36px] top-[3.52px] w-[18.92px] h-[36.96px] rounded-full bg-accent" />
-      </div>
+    <div aria-hidden className="w-[52px] h-[52px] rounded-[12px] bg-[#2B45D8] grid place-items-center shadow-[0_8px_24px_-8px_rgba(43,69,216,.65)]">
+      <TabiMark size={30} color="#fff" label="" />
     </div>
   );
 }
@@ -73,7 +71,7 @@ export default function Idle({ url, offPage, workflows, recent, onSlash, onRunWo
       ) : (
         <>
           <div className="flex flex-col items-center text-center gap-[14px] pt-9 px-1">
-            <Footprint />
+            <AppIcon />
             <div>
               <h1 className="text-[22px] font-semibold tracking-[-0.025em]">Hi, I’m Tabi.</h1>
               <p className="text-muted mt-[6px] text-[13.5px] leading-[1.5] max-w-[300px]">

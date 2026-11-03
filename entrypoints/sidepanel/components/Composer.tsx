@@ -181,7 +181,7 @@ export default function Composer(props: Props) {
           })}
         </div>
       )}
-      <div className="border border-border rounded-card bg-raised pt-[9px] pr-[9px] pb-[7px] pl-[11px] focus-within:border-border-strong">
+      <div className="border border-border rounded-card bg-raised pt-[9px] pr-[9px] pb-[7px] pl-[11px] focus-within:border-[color-mix(in_oklab,var(--accent)_45%,var(--border))]">
         <textarea
           ref={box}
           rows={1}

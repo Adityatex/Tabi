@@ -36,7 +36,7 @@ export function StepRow({ step }: { step: StepView }) {
       {step.status === 'ok' && <div className="flex items-baseline gap-1 text-[12px] text-muted mt-px"><Check size={12} className="text-green flex-none self-center" aria-label="Worked" /><span className="[overflow-wrap:anywhere]">{step.result}</span></div>}
       {step.status === 'fail' && <div className="flex items-baseline gap-1 text-[12px] text-red mt-px"><X size={12} className="flex-none self-center" aria-label="Failed" /><span className="[overflow-wrap:anywhere]">{step.result}</span></div>}
       {step.status === 'skip' && <div className="flex items-baseline gap-1 text-[12px] text-muted mt-px"><SkipForward size={12} className="flex-none self-center" aria-label="Not run" /><span className="[overflow-wrap:anywhere]">{step.result}</span></div>}
-      {step.status === 'run' && <div className="text-[12px] text-accent mt-px">{step.result}</div>}
+      {step.status === 'run' && <div className="text-[12px] text-accent mt-px"><span className="tabi-shimmer">{step.result}</span></div>}
       {step.status === 'wait' && <div className="text-[12px] text-amber font-medium mt-px">{step.result}</div>}
       {open && (
         <div className="mt-[6px] px-[9px] py-[7px] rounded-ctl bg-surface border border-border text-[11.5px] grid grid-cols-[auto_minmax(0,1fr)] gap-x-[10px] gap-y-[3px]">

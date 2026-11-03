@@ -61,7 +61,7 @@ export default function GoalCard({ run, queuePosition, confirmOn, onStop }: Prop
   const segColor = { waiting: 'var(--amber)', failed: 'var(--red)', neutral: 'var(--muted)', done: 'var(--green)' }[pill.tone as string] ?? 'var(--accent)';
 
   return (
-    <section className="mt-[10px] mx-[10px] bg-surface border border-border rounded-ctl overflow-hidden flex-none" aria-label="Task" data-run-status={run.status}>
+    <section className={`relative mt-[10px] mx-[10px] bg-surface border border-border rounded-ctl overflow-hidden flex-none ${run.status === 'running' ? 'tabi-running' : ''}`} aria-label="Task" data-run-status={run.status}>
       <div className="px-3 pt-[11px] pb-[10px]">
         {run.workflowName && <div className="font-mono text-[11px] text-muted mb-1">/{run.workflowName}</div>}
         {run.chosenSkills && (

@@ -240,6 +240,23 @@ html, body {
   .answer .code-copy:hover { background: var(--surface); }
 }
 
+/* Tabi's blue, while it works: a sweep along the task card's top edge, and a shimmer on the step it's on */
+@keyframes tabi-sweep { 0% { background-position: -40% 0 } 100% { background-position: 140% 0 } }
+.tabi-running::before {
+  content: ''; position: absolute; inset: 0 0 auto 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent) no-repeat;
+  background-size: 40% 100%;
+  animation: tabi-sweep 1.8s ease-in-out infinite;
+}
+@keyframes tabi-shimmer { 0% { background-position: 100% 0 } 100% { background-position: -100% 0 } }
+.tabi-shimmer {
+  background: linear-gradient(90deg, var(--accent) 40%, color-mix(in oklab, var(--accent) 35%, var(--surface)) 50%, var(--accent) 60%) 0 0 / 200% 100%;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: tabi-shimmer 2.2s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .tabi-shimmer { color: var(--accent); background: none; }
+  .tabi-running::before { display: none; }
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
